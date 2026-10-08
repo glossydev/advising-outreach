@@ -6,10 +6,28 @@ __v0_jsx-dev-runtime.ts
 .v0-trash/
 .vercel/
 
-# Environment variables
+# Environment variables (only .env.example is committed)
+.env
 .env*.local
 
-# Common ignores
+# Local SQLite database
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Build and test output
 node_modules
 .next/
+next-env.d.ts
+*.tsbuildinfo
+coverage/
+test-results/
+playwright-report/
+
+# The hiring team's brief stays out of the (eventually public) repo
+instructions.txt
+
+# OS
 .DS_Store
+Thumbs.db

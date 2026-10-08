@@ -6,7 +6,8 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "data:audit": "tsx scripts/audit.ts"
   },
   "dependencies": {
     "@base-ui/react": "^1.5.0",
@@ -15,6 +16,7 @@
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
     "cn": "^0.4.0",
+    "csv-parse": "^7.0.3",
     "date-fns": "^4.4.0",
     "lucide-react": "^1.16.0",
     "next": "16.4.0",
@@ -35,6 +37,7 @@
     "@types/react-dom": "^19",
     "postcss": "^8.5",
     "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
     "typescript": "5.7.3"
   }
 }
