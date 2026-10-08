@@ -17,8 +17,15 @@ import type {
 } from "./types"
 import { OVERDUE_DAYS, TODAY } from "./config"
 import { SEED } from "./mock-data"
-import { NOTE_COLUMNS, STUDENT_COLUMNS, parseCsv, runImportPipeline, toRawRows, type ImportResult } from "./import"
-import { deriveStudent } from "./scoring"
+import {
+  NOTE_COLUMNS,
+  STUDENT_COLUMNS,
+  parseCsv,
+  runImportPipeline,
+  toRawRows,
+  type ImportResult,
+} from "./legacy/v0-import"
+import { deriveStudent } from "./legacy/v0-scoring"
 import { validateNoteInput } from "./validation"
 import { METHOD_LABELS, formatDate, fullName } from "./format"
 

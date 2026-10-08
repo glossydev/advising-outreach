@@ -1,80 +1,139 @@
-import type { ContactNote, Student, StudentRecord } from "./types"
-import { daysSince, formatDate } from "./format"
+import { daysBetween, formatShortDate } from "@/lib/import/dates"
+import { classStandingRange } from "@/lib/import/fields"
+import { WAITING_ON_STUDENT } from "@/lib/import/text"
+
+/*
+ * The outreach score: who an advisor should contact next, and why. Every point comes with a
+ * reason in plain words, and advisors see the reasons verbatim, so the ranking can be checked by
+ * hand. Weights are in one table so they can be tuned with the advisors.
+ */
+
+export interface ScoringStudent {
+  student_id: string
+  risk_flag: string
+  gpa: number | null
+  class_year: string
+  credits_earned: number
+  /** The spreadsheet's last_contact_date, as imported. */
+  source_last_contact_date: string | null
+}
+
+export interface ScoringNote {
+  note_id: string
+  contact_date: string
+  note_text: string
+  follow_up_date: string | null
+}
+
+export interface Reason {
+  /** The scoring rule, e.g. "no_contact_on_record" (D24) or "waiting_on_student" (D25). */
+  rule: string
+  points: number
+  text: string
+}
+
+export interface OutreachScore {
+  /** 0–100. */
+  score: number
+  reasons: Reason[]
+  lastContact: { date: string; source: "note" | "spreadsheet" } | null
+  daysSinceContact: number | null
+  /** No notes and no spreadsheet date: listed first in the queue regardless of score (D24). */
+  noContactOnRecord: boolean
+}
+
+export const WEIGHTS = {
+  noContactOnRecord: 40,
+  daysSinceContact: [
+    { minDays: 90, points: 35 },
+    { minDays: 60, points: 28 },
+    { minDays: 30, points: 18 },
+    { minDays: 14, points: 6 },
+  ],
+  riskHigh: 30,
+  riskMedium: 15,
+  gpaBelow2: 20,
+  gpaBelow2_5: 10,
+  waitingOnStudent: 15,
+  followUpOverdue: 15,
+  followUpDueSoon: 10,
+  /** How far ahead an upcoming follow-up counts as "due soon". */
+  followUpSoonDays: 14,
+  creditsBehind: 6,
+} as const
+
+const newestFirst = (notes: readonly ScoringNote[]) =>
+  [...notes].sort((a, b) => b.contact_date.localeCompare(a.contact_date) || b.note_id.localeCompare(a.note_id))
 
 /**
- * Rule-based outreach score (0–100). Each rule adds points and a human-readable reason.
- * Keep this transparent: advisors see the reasons verbatim.
+ * D22: last contact is the later of the newest note and the spreadsheet's date. A newer spreadsheet
+ * date means a contact nobody wrote up; a newer note means the spreadsheet is stale.
  */
-export function deriveStudent(record: StudentRecord, notes: ContactNote[]): Student {
-  const newestNote = notes.reduce<ContactNote | null>(
-    (latest, n) => (!latest || n.contact_date > latest.contact_date ? n : latest),
-    null,
-  )
-  const lastContact =
-    newestNote && (!record.last_contact_date || newestNote.contact_date > record.last_contact_date)
-      ? newestNote.contact_date
-      : record.last_contact_date
+export function lastContactFor(student: ScoringStudent, notes: readonly ScoringNote[]): OutreachScore["lastContact"] {
+  const newestNote = newestFirst(notes)[0]?.contact_date ?? null
+  const sheet = student.source_last_contact_date
+  if (!newestNote && !sheet) return null
+  if (newestNote && (!sheet || newestNote >= sheet)) return { date: newestNote, source: "note" }
+  return { date: sheet!, source: "spreadsheet" }
+}
 
-  const days = lastContact ? daysSince(lastContact) : null
-  const reasons: string[] = []
-  let score = 0
+export function scoreStudent(student: ScoringStudent, notes: readonly ScoringNote[], today: string): OutreachScore {
+  const reasons: Reason[] = []
+  const add = (rule: string, points: number, text: string) => reasons.push({ rule, points, text })
 
-  if (days === null) {
-    score += 40
-    reasons.push("Never contacted")
-  } else if (days >= 90) {
-    score += 35
-    reasons.push(`No contact in ${days} days`)
-  } else if (days >= 60) {
-    score += 28
-    reasons.push(`No contact in ${days} days`)
-  } else if (days >= 30) {
-    score += 18
-    reasons.push(`No contact in ${days} days`)
-  } else if (days >= 14) {
-    score += 6
+  const lastContact = lastContactFor(student, notes)
+  const days = lastContact ? daysBetween(lastContact.date, today) : null
+
+  if (!lastContact) add("no_contact_on_record", WEIGHTS.noContactOnRecord, "No contact on record")
+  else if (days !== null) {
+    const band = WEIGHTS.daysSinceContact.find((b) => days >= b.minDays)
+    if (band) add("days_since_contact", band.points, `No contact in ${days} days`)
   }
 
-  if (record.risk_flag === "high") {
-    score += 30
-    reasons.push("High risk flag")
-  } else if (record.risk_flag === "medium") {
-    score += 15
-    reasons.push("Medium risk flag")
-  } else if (record.risk_flag === "unknown") {
-    score += 8
-    reasons.push("Risk flag unknown")
+  if (student.risk_flag === "High") add("risk_flag", WEIGHTS.riskHigh, "High risk flag")
+  else if (student.risk_flag === "Medium") add("risk_flag", WEIGHTS.riskMedium, "Medium risk flag")
+
+  if (student.gpa !== null) {
+    if (student.gpa < 2.0) add("gpa", WEIGHTS.gpaBelow2, `GPA ${student.gpa.toFixed(2)} (below 2.0)`)
+    else if (student.gpa < 2.5) add("gpa", WEIGHTS.gpaBelow2_5, `GPA ${student.gpa.toFixed(2)} (below 2.5)`)
   }
 
-  if (record.gpa === null) {
-    score += 5
-    reasons.push("GPA missing")
-  } else if (record.gpa < 2.0) {
-    score += 20
-    reasons.push("GPA below 2.0")
-  } else if (record.gpa < 2.5) {
-    score += 10
-    reasons.push("GPA below 2.5")
+  const newest = newestFirst(notes)[0]
+  if (newest && WAITING_ON_STUDENT.test(newest.note_text)) {
+    const waited = daysBetween(newest.contact_date, today)
+    add("waiting_on_student", WEIGHTS.waitingOnStudent, `Waiting on a reply since ${formatShortDate(newest.contact_date, today)} (${waited} days)`)
   }
 
-  const overdueFollowUp = newestNote?.follow_up_date && daysSince(newestNote.follow_up_date) > 0
-  if (overdueFollowUp && newestNote?.follow_up_date) {
-    score += 15
-    reasons.push(`Follow-up overdue since ${formatDate(newestNote.follow_up_date)}`)
+  if (newest?.follow_up_date) {
+    const until = daysBetween(today, newest.follow_up_date)
+    const due = formatShortDate(newest.follow_up_date, today)
+    if (until < 0) add("follow_up", WEIGHTS.followUpOverdue, `Follow-up was due ${due} (${-until} days ago)`)
+    else if (until <= WEIGHTS.followUpSoonDays)
+      add("follow_up", WEIGHTS.followUpDueSoon, until === 0 ? `Follow-up due today` : `Follow-up due ${due} (in ${until} days)`)
   }
 
-  if (record.class_year === "Senior" && record.credits < 100) {
-    score += 6
-    reasons.push("Senior with under 100 credits")
+  const range = classStandingRange(student.class_year)
+  if (range && student.credits_earned < range[0]) {
+    add("credits_behind", WEIGHTS.creditsBehind, `${student.credits_earned} credits, below the usual ${range[0]}+ for a ${student.class_year}`)
   }
 
-  const { import_issues, ...rest } = record
   return {
-    ...rest,
-    last_contact_date: lastContact,
-    days_since_contact: days,
-    outreach_score: Math.min(100, score),
-    outreach_reasons: reasons,
-    data_issues: import_issues,
+    score: Math.min(100, reasons.reduce((sum, r) => sum + r.points, 0)),
+    reasons,
+    lastContact,
+    daysSinceContact: days,
+    noContactOnRecord: lastContact === null,
   }
+}
+
+/** Queue order: no contact on record first (D24), then highest score, then name. */
+export function compareOutreach(
+  a: { outreach: OutreachScore; sortName: string },
+  b: { outreach: OutreachScore; sortName: string },
+): number {
+  return (
+    Number(b.outreach.noContactOnRecord) - Number(a.outreach.noContactOnRecord) ||
+    b.outreach.score - a.outreach.score ||
+    a.sortName.localeCompare(b.sortName)
+  )
 }

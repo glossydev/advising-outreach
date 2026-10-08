@@ -25,7 +25,7 @@ Two kinds of entries:
 
 **D3 · `id_already_imported` · warning or info.** The ID already exists in the database. Imports add and update, never delete (P1).
 - A student with changed fields is a warning: "will update this record", showing which fields change.
-- A note identical to the stored one is info: "already imported, will be skipped".
+- A note identical to the stored one is info: "already imported, will be skipped". The comparison removes SSNs from the file's text first, since stored notes never contain them; otherwise re-importing N041 would look like a conflict.
 - A note with the same ID but different content is blocking.
 
 _Fires on sample: 0 on the first import. Re-importing the sample notes triggers it 57 times as "already imported", which is the intended behavior._
@@ -104,7 +104,7 @@ _Fires on sample: 1, N041 (audit 5.5)._
 
 **D22 · `last_contact_mismatch` · info.**
 - A student's last contact is **the later of** their newest note and the spreadsheet's `last_contact_date`.
-- The spreadsheet value is stored unchanged as `source_last_contact_date`.
+- The spreadsheet value is kept, after any fixes accepted during import (such as converting "Aug 25, 2026"), as `source_last_contact_date`.
 - When the two disagree, this rule records which one was used.
 - Why the later of the two: a newer spreadsheet date means a contact happened that nobody wrote a note for, and a newer note means the spreadsheet is stale. Either way the most recent known contact is the right input for "who hasn't heard from us".
 
@@ -116,7 +116,18 @@ _Fires on sample: 0. All 47 students with both agree once dates are normalized (
 
 **D24 · `no_contact_on_record` · scoring rule.** A student with no notes and no readable spreadsheet date shows as **"No contact on record"**, not "Never contacted", because a spreadsheet can't prove a contact never happened. They rank at the top of the outreach queue. _Applies to 3 students on sample: S1006, S1018 (High risk), S1040 (audit 4.1)._
 
-**D25 · `waiting_on_student` · scoring rule.** If a student's newest note is waiting on them ("no reply", "no response", "awaiting", "left voicemail"), their outreach priority goes up and the reason says how long they've been waiting. _Applies to 5 students on sample, 4 of them High risk, waiting 69–138 days (audit 5.4)._
+**D25 · `waiting_on_student` · scoring rule.** If a student's newest note is waiting on them ("no reply", "no response", "awaiting a reply", "left voicemail"), their outreach priority goes up and the reason says how long they've been waiting.
+- _Applies to 4 students on sample, all High risk, waiting 69–138 days (audit 5.4)._
+- _Corrected while building it:_ the audit counted 5. The fifth, N019's "Financial aid appeal pending", is waiting on the aid office, not on the student, so it doesn't count.
+
+**Scoring weights** live in one table (`WEIGHTS` in `lib/scoring.ts`) so they can be tuned with advisors. The plan's other factors are there too:
+- days since last contact (the biggest factor);
+- risk flag;
+- GPA under 2.0 / 2.5;
+- credits below the UA class-standing minimum (fires 0 times on sample);
+- a follow-up date that's overdue or due within 14 days (fires once: N041, due Oct 15).
+
+Every factor adds a plain-language reason, and the reasons are shown to advisors verbatim.
 
 ### Audit findings with no rule
 

@@ -1,6 +1,8 @@
 # Import design
 
-**Status:** agreed 2026-10-08 (decisions G2, P1, P2, T4, T5 in [DECISIONS.md](DECISIONS.md)). Not built yet.
+**Status:** agreed 2026-10-08 (decisions G2, P1, P2, T4, T5 in [DECISIONS.md](DECISIONS.md)).
+- **Built (Phase 3):** the rules, column matching, fixes, commit and fix history, seed and reset.
+- **Not built yet:** the API (Phase 4) and the import page (Phase 5).
 
 ## Why the import works this way
 
@@ -77,9 +79,10 @@ The panel is controlled by an environment variable (`ENABLE_PROTOTYPE_TOOLS`, on
 | Piece | Where | What it does |
 |---|---|---|
 | Rules | `lib/import/rules/` | One file per rule: a check that returns issues, and an optional suggested fix. Plain functions, no database access, unit-tested with tiny inline CSVs. |
-| Scan | `lib/import/scan.ts` | Parses the CSV, matches columns, runs the rules against the rows plus a snapshot of what's already in the database (existing IDs, names). |
+| Scan | `lib/import/csv.ts`, `columns.ts`, `validate.ts` | Parses the CSV without changing any value, matches columns, builds editable rows, and runs the rules against them plus a snapshot of what's already in the database (`lib/services/existing-data.ts`). |
+| Fixes and commit | `lib/import/resolve.ts`, `plan.ts`, `history.ts`, `lib/services/import-service.ts` | Applying suggestions (one, or "apply to all"), turning reviewed rows into writes, and building the fix history by comparing the file as uploaded with the rows as committed. |
 | API | `app/api/import/*` | `POST /scan` (an uploaded file or a sample name) returns rows, column matches and issues. `POST /commit` re-validates, then writes the rows, the import record and every fix in one transaction. Prototype routes: `POST /sample-reset`. |
-| Storage | SQLite file by default, Postgres via `DATABASE_URL` (T2) | `imports` (who, when, kind, file name and SHA-256, row counts) and `import_fixes` (rule, row, column, original value, final value, accepted by). For the SSN rule the original value is stored masked. |
+| Storage | SQLite file by default, Postgres via `DATABASE_URL` (T2) | `imports` (who, when, kind, file name and SHA-256, row counts) and `import_issues` (rule, row, column, original value, final value, resolution). For the SSN rule the original value is stored masked. |
 | UI | `/import` (new) and `/data-quality` | The step-by-step import, then the history and fixes report. v0's replace-everything upload card is retired; its severity badges and per-rule issue list are reused for the report. |
 
 ## Assumed column meanings

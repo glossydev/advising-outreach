@@ -139,3 +139,39 @@ Tools in play:
 - In Phase 0 Claude kept pnpm because v0 had shipped a pnpm lockfile, without checking how the deployment target installs packages. GDS's build log is what caught it.
 - `npm audit fix` reported a fix for the 9 high advisories, but there isn't one: the vulnerable package (`braces` 3.0.3) has no patched release. Claude checked the registry instead of trusting the tool, and recorded the risk as accepted, with reasoning (T8).
 - An install-script listing suggested `better-sqlite3` would compile C++ code on install (`node-gyp rebuild`), which could break a deploy machine without a compiler. Inspecting the package showed it ships precompiled binaries and never compiles. The build step is denied explicitly so it stays that way.
+
+## 2026-10-08 — Phase 3: database, import rules, seed, scoring, tests
+
+**What Claude Code did**
+- **Database layer:** one Kysely client that picks SQLite or Postgres from `DATABASE_URL`, plus migrations that use only types both databases accept (T2).
+- **Import engine** (`lib/import/`), all plain functions with no database access:
+  - CSV parsing that never alters a value;
+  - automatic column matching, labeled exact / formatting / alias / guess for the review screen (P2);
+  - date reading that refuses to guess between month-first and day-first;
+  - **23 rules, one file each**, named exactly as in DECISIONS.md D1–D23;
+  - applying fixes (one, or "apply to all"), the commit plan, and a fix history the server builds itself by comparing the file as uploaded with the rows as committed.
+- **Services:** loading what's in the database, committing an import in one transaction, seeding, and reset. `npm run seed` and `npm run db:reset` work on both databases.
+- **Scoring** (`lib/scoring.ts`): weights in one table, a plain-language reason for every point, last contact = the later of the newest note and the spreadsheet (D22).
+- **96 Vitest tests:**
+  - per rule: fires, suggests, stays quiet;
+  - dates, column matching, fixes and history, scoring;
+  - the full sample import on SQLite **and on Postgres 16 in Docker**.
+
+  One test reads DECISIONS.md and fails if any rule's entry is missing or misnamed, so the docs and the code can't drift apart.
+
+**Verified, not assumed**
+- Seeding the hiring team's files: 50 students and 57 notes, 0 excluded. Every fix fired exactly where the audit predicted (8+11 date conversions, the N/A, Grace/Gracie, and N041's SSN, sensitivity and follow-up date, N001's phone-only preference).
+- No SSN-shaped number exists anywhere in the database, including the fix history (checked by query and by test, on both databases).
+- The SHA-256 recorded for each import equals the audit's fingerprint for the original file, so the import read the files byte-for-byte.
+- The outreach ranking for the top of the queue and for S1002 matches a hand calculation, written into a test.
+
+**Judgment calls Claude made within the agreed decisions** (flagged for Adam)
+- "No contact on record ranks first" (D24) is implemented as a **separate tier in the sort**, not by inflating the score. A no-contact Low-risk student honestly scores 40, while a contacted High-risk student can score 100. Listing the no-contact group first keeps every score truthful and still puts them at the top.
+- D25 counts "no reply", "awaiting a reply" and "left voicemail", but not "pending". Building it showed the audit's 5th match (N019, "Financial aid appeal pending") is waiting on an office, not the student. DECISIONS.md corrected to 4.
+
+**What Claude got wrong this phase**
+- Two mistakes caught in Claude's own review, before any test ran:
+  - The first fix-history draft would have recorded N041's sensitivity decision (D18) against the SSN fix's text change.
+  - The first "clean file" test fixture would have tripped the last-contact rule (D22).
+- Docker Desktop wasn't running and wasn't in its default install folder; it had to be found and started.
+- All 89 SQLite tests and all 96 with Postgres passed on their first run.

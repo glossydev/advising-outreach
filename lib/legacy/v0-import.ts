@@ -8,8 +8,13 @@ import type {
   RawStudentRow,
   RiskFlag,
   StudentRecord,
-} from "./types"
-import { TODAY } from "./config"
+} from "../types"
+import { TODAY } from "../config"
+
+/*
+ * v0's original mock import pipeline, kept only so the mock data layer (lib/data.ts) runs
+ * until Phase 4 replaces it. Superseded by lib/import/. Delete with lib/data.ts's mock store.
+ */
 
 export interface ImportResult {
   students: StudentRecord[]
