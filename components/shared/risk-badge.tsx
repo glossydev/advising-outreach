@@ -1,23 +1,21 @@
-import { CircleAlert, CircleCheck, CircleHelp, TriangleAlert } from "lucide-react"
+import { CircleAlert, CircleCheck, TriangleAlert } from "lucide-react"
 import type { RiskFlag } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 export const RISK_LABELS: Record<RiskFlag, string> = {
-  high: "High",
-  medium: "Medium",
-  low: "Low",
-  unknown: "Unknown",
+  High: "High",
+  Medium: "Medium",
+  Low: "Low",
 }
 
 const RISK_STYLES: Record<RiskFlag, { icon: typeof TriangleAlert; className: string }> = {
-  high: { icon: TriangleAlert, className: "border-signal bg-signal text-signal-foreground" },
-  medium: { icon: CircleAlert, className: "border-brick bg-card text-brick" },
-  low: { icon: CircleCheck, className: "border-saguaro bg-card text-saguaro-strong" },
-  unknown: { icon: CircleHelp, className: "border-input bg-card text-muted-foreground" },
+  High: { icon: TriangleAlert, className: "border-signal bg-signal text-signal-foreground" },
+  Medium: { icon: CircleAlert, className: "border-brick bg-card text-brick" },
+  Low: { icon: CircleCheck, className: "border-saguaro bg-card text-saguaro-strong" },
 }
 
 export function RiskBadge({ risk, className }: { risk: RiskFlag; className?: string }) {
-  const { icon: Icon, className: tone } = RISK_STYLES[risk]
+  const { icon: Icon, className: tone } = RISK_STYLES[risk] ?? RISK_STYLES.Low
   return (
     <span
       className={cn(
@@ -27,8 +25,8 @@ export function RiskBadge({ risk, className }: { risk: RiskFlag; className?: str
       )}
     >
       <Icon className="size-3" aria-hidden="true" />
-      {RISK_LABELS[risk]}
-      {risk !== "unknown" && <span className="sr-only"> risk</span>}
+      {RISK_LABELS[risk] ?? risk}
+      <span className="sr-only"> risk</span>
     </span>
   )
 }

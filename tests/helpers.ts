@@ -61,6 +61,7 @@ export function existingStudent(overrides: Partial<ExistingStudent> = {}): Exist
     advisor: "Okafor",
     risk_flag: "Low",
     source_last_contact_date: "2026-09-18",
+    possible_duplicate_of: null,
     newest_note_date: null,
     ...overrides,
   }

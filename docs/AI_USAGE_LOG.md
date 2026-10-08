@@ -175,3 +175,46 @@ Tools in play:
   - The first "clean file" test fixture would have tripped the last-contact rule (D22).
 - Docker Desktop wasn't running and wasn't in its default install folder; it had to be found and started.
 - All 89 SQLite tests and all 96 with Postgres passed on their first run.
+
+## 2026-10-08 — Phase 4: API, service layer, pages on real data
+
+**What Claude Code did**
+- **Types follow the dataset** (G1): risk flags Low/Medium/High, contact types Phone/Email/In person/Zoom, one `note_text` per note, reasons that carry their points. Every page and component was moved over to these.
+- **Service layer** (`lib/services/`) for students, notes, data quality, import scan/commit and prototype tools.
+- **Nine API routes**, all thin: Zod validation, one error shape, documented with real responses in `docs/API.md`.
+- **The pages read the database** through the same services. Logging a note goes through the API, and the page refreshes from the server.
+- **v0's mock data and mock pipeline deleted**, along with its replace-everything upload card. Phase 5's import page takes its place.
+- **The data decisions are now visible in the UI:**
+  - sensitive notes collapsed, with their follow-up date still showing (D18);
+  - a possible-duplicate banner on both students' pages (D15);
+  - the saved contact preference, and a warning when an advisor picks a conflicting channel (D19);
+  - "No contact on record" wording and grouping (D24);
+  - where the last-contact date comes from (D22);
+  - a per-student "Data notes" card showing what the import changed.
+- **v0's fake AI summary card replaced** with a deterministic "Before you reach out" card (P5).
+
+**Verified, not assumed**
+- **Fresh database:** deleted the local file and started the app. The first request created the database and imported the sample data by itself.
+- **Smoke test of every endpoint**, including the error paths:
+  - 400 for a bad filter, wrong types or broken JSON;
+  - 422 for an SSN or a future date, with a message per field;
+  - an upload with renamed headers, refused while issues were unresolved, committed after the fixes;
+  - reset.
+- **Every page in Chrome:**
+  - the queue (no-contact students first), Camila's collapsed sensitive note, Jordan's phone-only preference and open reply, Grace's duplicate banner, the import history;
+  - logging a note on Jordan's page: the preference warning appeared, the note saved as N058, the score dropped from 90 to 40, and there were no console errors.
+- 104 tests pass, including 10 new service-layer tests.
+
+**What went wrong, and what it exposed**
+- **Claude's own smoke-test script hung.** In PowerShell 5.1, `Get-Content -Raw` attaches hidden metadata to strings, so `ConvertTo-Json` ran out of memory and sent an empty request body. That exposed a real bug: **an empty or broken JSON body returned a 500.** Now a 400 `invalid_json`.
+- **Mixed line endings** (a Unix-style header, Windows-style rows) left a stray carriage return on the last value of each row. The importer coped (it suggested "Low" for `"low\r"`), but the parser now treats any line ending as a row break. Test added.
+- **Re-scanning the sample students re-flagged Grace/Gracie as possible duplicates,** although they were already linked. The rule now sees links from earlier imports. Test added.
+- **The sidebar still said "Mock data only."** Caught in the browser walkthrough.
+
+**Judgment calls Claude made** (recorded as P5, P6; flagged for Adam)
+- Removed the AI summary card rather than leave a fake one in front of reviewers.
+- The log-contact form follows the dataset:
+  - one note field;
+  - defaults to the student's preferred channel;
+  - warns rather than blocks on a channel conflict or sensitive wording;
+  - blocks future dates and SSNs.

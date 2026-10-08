@@ -17,6 +17,7 @@ export async function loadExistingData(db: Db): Promise<ExistingData> {
       "advisor",
       "risk_flag",
       "source_last_contact_date",
+      "possible_duplicate_of",
     ])
     .execute()
   const notes = await db

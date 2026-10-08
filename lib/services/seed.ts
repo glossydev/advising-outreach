@@ -16,7 +16,8 @@ export const SAMPLE_FILES: Record<ImportKind, string> = {
 }
 
 export function readSampleFile(kind: ImportKind, sourceKind: ImportSource["kind"] = "sample"): ImportSource {
-  const file = path.join(process.cwd(), SAMPLE_FILES[kind])
+  // Read at runtime from the checked-out repo; the bundler shouldn't trace the whole project for it.
+  const file = path.join(/* turbopackIgnore: true */ process.cwd(), SAMPLE_FILES[kind])
   return { name: path.basename(file), kind: sourceKind, text: readFileSync(file, "utf8") }
 }
 

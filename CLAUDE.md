@@ -8,7 +8,7 @@ A prototype internal tool for a university advising office: advisors see which s
 - npm, Node 22.12+ (`package-lock.json` pins versions; dependency install scripts are approved or denied in `package.json` → `allowScripts`, via `npm approve-scripts` / `npm deny-scripts`)
 - Database: SQLite file by default (`data/app.db`), Postgres when `DATABASE_URL` is a `postgres://` or `postgresql://` URL. Queries via Kysely.
 - CSV parsing: csv-parse · Tests: Vitest (unit), Playwright + axe (end-to-end, accessibility) _(later phases)_
-- Hosting: GDS deployment 23 (`arizona-prototype`), staging at https://wildcat-staging.glossydevserver.com. GDS runs `npm install` and `npm run build`; its `DATABASE_URL` points at Postgres on the GDS box (reachable only from there).
+- Hosting: GDS deployment 23 (`arizona-prototype`), staging at https://wildcat-staging.glossydevserver.com. GDS runs `npm install` and `npm run build`; its `DATABASE_URL` points at Postgres on the GDS box (reachable only from there). GDS does **not** deploy on push: a build runs only when triggered (glossy-deploy MCP `trigger_build`, or the GDS web UI).
 
 Commands: `npm run dev` · `npm run build` · `npm run typecheck` · `npm run lint` · `npm test` · `npm run seed` (wipe + import the sample data) · `npm run db:reset` (empty; stays empty) · `npm run data:audit` (regenerates `docs/DATA_AUDIT.md`).
 The dev machine is Windows/PowerShell 5.1: no `&&` chaining.
@@ -29,7 +29,7 @@ Tests on Postgres too: start a throwaway container and point `TEST_DATABASE_URL`
 - **Dataset and brief beat the v0 scaffold** (DECISIONS G1). v0 never saw the CSVs.
 - **The import never changes data silently** (G2). Every data rule is a named rule with a suggested fix that a person accepts. One decision in DECISIONS.md = one named rule in code, and the rule name appears in the entry. Design: `docs/IMPORT_DESIGN.md`.
 - **Never modify `data/source/`.** Those are the hiring team's files, kept byte-for-byte (see `.gitattributes`).
-- **All data access goes through the service layer** (`lib/services/`, Phase 4). Pages and route handlers stay thin.
+- **All data access goes through the service layer** (`lib/services/`). Server components read via `lib/data.ts` (a thin wrapper that opens the shared database); route handlers in `app/api/` validate with Zod and call the same services. Data changes from the browser go through the API, never server actions (the advisor cookie is the one server action: a view preference, not data). API reference: `docs/API.md`.
 - **Use `TODAY` from `lib/config.ts`, never `new Date()`,** for anything date-relative (days since contact, overdue, "future" dates). Real timestamps such as `created_at` may use the clock.
 - **Portable SQL only** (DECISIONS T2): dates and JSON as text, booleans as 0/1, text IDs; nothing dialect-specific.
 - **Never store or display an SSN-shaped number unmasked** (D17), including in logs and the fix history.
@@ -41,8 +41,8 @@ Tests on Postgres too: start a throwaway container and point `TEST_DATABASE_URL`
 - `docs/IMPORT_DESIGN.md`: the interactive import
 - `lib/db/`: Kysely client (SQLite or Postgres), migrations, setup (`getDb()` migrates and, on first run only, seeds)
 - `lib/import/`: the import engine, all pure functions. `rules/` holds one file per rule (D1–D23)
-- `lib/services/`: everything that touches the database
+- `lib/services/`: everything that touches the database (students, notes, data quality, import scan/commit, seed, prototype tools)
+- `lib/api.ts`: the API's error shape and helpers; `app/api/`: route handlers
 - `lib/scoring.ts`: outreach score and reasons (`WEIGHTS` table)
-- `lib/legacy/`, `lib/mock-data.ts`, `lib/data.ts`: v0's mock data layer, still driving the pages until Phase 4 replaces it
 - `lib/types.ts`, `lib/config.ts`: shared types and settings (`TODAY`, reference date via `NEXT_PUBLIC_REFERENCE_DATE`)
 - `AGENTS.md` is written by `next dev` itself. Next 16 differs from older versions; its own docs are in `node_modules/next/dist/docs/`, so check there before using an unfamiliar Next API.

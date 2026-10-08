@@ -41,7 +41,7 @@ export interface CommitResult {
 
 export class ImportError extends Error {
   constructor(
-    readonly code: "missing_columns" | "rows_mismatch" | "blocking_issues" | "empty_file",
+    readonly code: "missing_columns" | "rows_mismatch" | "blocking_issues" | "empty_file" | "file_too_large" | "invalid_file",
     message: string,
     readonly issues: Issue[] = [],
   ) {

@@ -76,6 +76,8 @@ export interface ExistingStudent {
   advisor: string
   risk_flag: string
   source_last_contact_date: string | null
+  /** Set when an earlier import linked this student as a possible duplicate (D15). */
+  possible_duplicate_of: string | null
   newest_note_date: string | null
 }
 

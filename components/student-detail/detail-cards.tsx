@@ -1,7 +1,8 @@
-import { Sparkles, TriangleAlert } from "lucide-react"
+import Link from "next/link"
+import { CalendarClock, Hourglass, Lock, MessageCircleWarning, Phone, SearchCheck, TriangleAlert, UserRoundX, Users } from "lucide-react"
 import { DaysSince } from "@/components/shared/contact-recency"
-import type { NotesSummary, Student } from "@/lib/types"
-import { formatDate } from "@/lib/format"
+import type { ContactNote, Student, StudentDataNote } from "@/lib/types"
+import { NO_CONTACT_LABEL, formatDate } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
 export function DetailCard({
@@ -29,12 +30,12 @@ export function AtAGlanceCard({ student }: { student: Student }) {
   const rows: [string, React.ReactNode][] = [
     ["Major", student.major],
     ["Class year", student.class_year],
-    ["Credits", <span key="c" className="tabular-nums">{student.credits}</span>],
+    ["Credits earned", <span key="c" className="tabular-nums">{student.credits_earned}</span>],
     [
       "GPA",
       student.gpa === null ? (
         <span key="g" className="text-muted-foreground">
-          — <span className="sr-only">missing</span>
+          — <span className="sr-only">not on record</span>
         </span>
       ) : (
         <span key="g" className="tabular-nums">{student.gpa.toFixed(2)}</span>
@@ -43,7 +44,16 @@ export function AtAGlanceCard({ student }: { student: Student }) {
     ["Advisor", student.advisor],
     [
       "Last contact",
-      student.last_contact_date ? formatDate(student.last_contact_date) : <span key="l" className="font-medium text-signal">Never</span>,
+      student.last_contact_date ? (
+        <span key="l" className="flex flex-col items-end leading-tight">
+          {formatDate(student.last_contact_date)}
+          <span className="text-[12px] text-muted-foreground">
+            {student.last_contact_source === "spreadsheet" ? "from the spreadsheet (no note)" : "from the newest note"}
+          </span>
+        </span>
+      ) : (
+        <span key="l" className="font-medium text-signal">{NO_CONTACT_LABEL}</span>
+      ),
     ],
     ["Days since contact", <DaysSince key="d" days={student.days_since_contact} />],
   ]
@@ -84,62 +94,141 @@ export function OutreachPriorityCard({ student }: { student: Student }) {
         </div>
       </div>
       {student.outreach_reasons.length > 0 ? (
-        <ul className="flex list-disc flex-col gap-1 pl-5 leading-relaxed marker:text-azurite">
+        <ul className="flex flex-col gap-1">
           {student.outreach_reasons.map((r) => (
-            <li key={r}>{r}</li>
+            <li key={r.rule + r.text} className="flex items-baseline justify-between gap-3 leading-relaxed">
+              <span>{r.text}</span>
+              <span className="shrink-0 text-[13px] tabular-nums text-muted-foreground">+{r.points}</span>
+            </li>
           ))}
         </ul>
       ) : (
-        <p className="text-muted-foreground">No outreach rules triggered.</p>
+        <p className="text-muted-foreground">Nothing raises this student&apos;s priority right now.</p>
       )}
       <p className="text-[13px] leading-relaxed text-muted-foreground">
-        Computed from contact recency, GPA, credits, and the risk flag. Not a prediction.
+        Points for time since contact, the risk flag, GPA, credits, follow-ups and unanswered outreach, capped at 100.
+        {student.no_contact_on_record && " Students with no contact on record are listed first in the queue."} Not a prediction.
       </p>
     </DetailCard>
   )
 }
 
-export function AiSummaryCard({ configured, summary }: { configured: boolean; summary: NotesSummary | null }) {
+function Item({ icon: Icon, tone = "default", children }: { icon: typeof Phone; tone?: "default" | "warn"; children: React.ReactNode }) {
   return (
-    <DetailCard title="Summary of past notes" titleId="summary-heading">
-      {!configured ? (
-        <div className="flex items-start gap-2 rounded-md bg-muted p-3 text-muted-foreground">
-          <Sparkles className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          <p className="leading-relaxed">
-            AI summaries are not configured. Set <code className="font-mono text-[13px] text-foreground">ANTHROPIC_API_KEY</code> to
-            enable.
-          </p>
-        </div>
-      ) : !summary ? (
-        <p className="text-muted-foreground">No notes to summarize yet.</p>
+    <li className="flex gap-2 leading-relaxed">
+      <Icon className={cn("mt-1 size-4 shrink-0", tone === "warn" ? "text-signal" : "text-azurite")} aria-hidden="true" />
+      <div className="min-w-0">{children}</div>
+    </li>
+  )
+}
+
+/**
+ * The things worth knowing before contacting this student, pulled from decisions made on their
+ * data: a stated contact preference (D19), an unanswered outreach (D25), a follow-up date (D20),
+ * sensitive notes (D18) and where the last-contact date comes from (D22, D24).
+ */
+export function BeforeYouReachOutCard({ student, notes }: { student: Student; notes: ContactNote[] }) {
+  const pref = student.contact_preference
+  const waiting = student.outreach_reasons.find((r) => r.rule === "waiting_on_student")
+  const followUp = student.outreach_reasons.find((r) => r.rule === "follow_up")
+  const sensitive = notes.filter((n) => n.is_sensitive).length
+  const items: React.ReactNode[] = []
+
+  if (pref) {
+    items.push(
+      <Item key="pref" icon={Phone} tone="warn">
+        <p className="font-medium text-navy">
+          {pref.channel ? `Contact by ${pref.channel.toLowerCase()} only` : "Stated contact preference"}
+        </p>
+        <p className="text-[13px] text-muted-foreground">
+          &ldquo;{pref.text}&rdquo; ({pref.note_id}
+          {pref.noted_on ? `, ${formatDate(pref.noted_on)}` : ""})
+        </p>
+      </Item>,
+    )
+  }
+  if (student.no_contact_on_record) {
+    items.push(
+      <Item key="none" icon={UserRoundX} tone="warn">
+        No contact on record. This would be the first outreach the office has logged.
+      </Item>,
+    )
+  }
+  if (waiting) items.push(<Item key="wait" icon={Hourglass} tone="warn">{waiting.text}.</Item>)
+  if (followUp) items.push(<Item key="fu" icon={CalendarClock}>{followUp.text}.</Item>)
+  if (student.last_contact_source === "spreadsheet" && student.last_contact_date) {
+    items.push(
+      <Item key="sheet" icon={MessageCircleWarning}>
+        The last contact ({formatDate(student.last_contact_date)}) is from the spreadsheet; no note was written for it.
+      </Item>,
+    )
+  }
+  if (sensitive > 0) {
+    items.push(
+      <Item key="sens" icon={Lock}>
+        {sensitive === 1 ? "One note is" : `${sensitive} notes are`} marked sensitive and collapsed in the timeline.
+      </Item>,
+    )
+  }
+
+  return (
+    <DetailCard title="Before you reach out" titleId="reach-out-heading">
+      {items.length > 0 ? (
+        <ul className="flex flex-col gap-3">{items}</ul>
       ) : (
-        <>
-          <p className="leading-relaxed text-pretty">{summary.summary}</p>
-          <figure className="flex flex-col gap-1">
-            <figcaption className="text-[13px] font-medium text-muted-foreground">Suggested opening</figcaption>
-            <blockquote className="border-l-2 border-azurite bg-cloud/60 px-3 py-2 leading-relaxed text-navy italic">
-              {summary.suggested_opening}
-            </blockquote>
-          </figure>
-          <p className="text-[13px] text-muted-foreground">Generated draft. Review before sending.</p>
-        </>
+        <p className="flex gap-2 text-muted-foreground">
+          <SearchCheck className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+          No preferences, open follow-ups or unanswered outreach on record.
+        </p>
       )}
     </DetailCard>
   )
 }
 
-export function DataNotesCard({ issues }: { issues: string[] }) {
-  if (issues.length === 0) return null
+export function DataNotesCard({ notes }: { notes: StudentDataNote[] }) {
+  if (notes.length === 0) return null
   return (
     <DetailCard title="Data notes" titleId="data-notes-heading" className="border-l-4 border-l-amber">
-      <ul className="flex flex-col gap-1.5">
-        {issues.map((issue) => (
-          <li key={issue} className="flex gap-2 leading-relaxed">
-            <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber" aria-hidden="true" />
-            {issue}
+      <p className="text-[13px] leading-relaxed text-muted-foreground">What the import found in this student&apos;s data, and what was done.</p>
+      <ul className="flex flex-col gap-2.5">
+        {notes.map((n, i) => (
+          <li key={`${n.rule}-${n.record_id}-${i}`} className="flex gap-2 leading-relaxed">
+            <TriangleAlert className="mt-1 size-4 shrink-0 text-amber" aria-hidden="true" />
+            <div className="min-w-0">
+              <p className="font-medium text-navy">{n.title}</p>
+              <p className="text-[13px] break-words">{n.message}</p>
+              <p className="text-[12px] text-muted-foreground">{n.resolution}</p>
+            </div>
           </li>
         ))}
       </ul>
     </DetailCard>
+  )
+}
+
+/** D15: shown on both students' pages. Never merged automatically. */
+export function DuplicateBanner({ student }: { student: Student }) {
+  if (student.possible_duplicates.length === 0) return null
+  return (
+    <div role="note" className="flex gap-3 rounded-lg border border-amber/50 bg-caliche/60 p-4">
+      <Users className="mt-0.5 size-5 shrink-0 text-brick" aria-hidden="true" />
+      <div className="flex flex-col gap-1 leading-relaxed">
+        <p className="font-medium text-navy">
+          Possibly the same person as{" "}
+          {student.possible_duplicates.map((d, i) => (
+            <span key={d.student_id}>
+              {i > 0 && ", "}
+              <Link href={`/students/${d.student_id}`} className="text-azurite underline-offset-2 hover:underline">
+                {d.name} ({d.student_id})
+              </Link>
+            </span>
+          ))}
+        </p>
+        <p className="text-[13px] text-muted-foreground">
+          Linked during import: similar name, same major or class year, different ID, email and advisor. Check before contacting
+          both, and confirm with the registrar before treating them as one student.
+        </p>
+      </div>
+    </div>
   )
 }

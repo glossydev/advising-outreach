@@ -32,8 +32,10 @@ export function QueueTable({ students, selectedAdvisor }: { students: Student[];
   return (
     <>
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[960px] border-collapse text-sm">
-          <caption className="sr-only">Students ranked by outreach score, highest first</caption>
+        <table className="w-full min-w-[840px] border-collapse text-sm">
+          <caption className="sr-only">
+            Students ranked for outreach: no contact on record first, then by outreach score, highest first
+          </caption>
           <thead className="bg-cloud text-left text-[13px] text-navy">
             <tr>
               <th scope="col" className="w-12 px-3 py-2 text-right font-semibold">
@@ -80,7 +82,7 @@ export function QueueTable({ students, selectedAdvisor }: { students: Student[];
                   <ScoreBar score={s.outreach_score} />
                 </td>
                 <td className="px-3 py-2">
-                  <ReasonChips reasons={s.outreach_reasons} />
+                  <ReasonChips reasons={s.outreach_reasons.map((r) => r.text)} />
                 </td>
                 <td className="px-3 py-2 text-right">
                   <Button

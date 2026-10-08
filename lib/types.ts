@@ -1,6 +1,34 @@
-export type RiskFlag = "high" | "medium" | "low" | "unknown"
+/*
+ * Shapes shared by the pages, the API and the services. Vocabulary follows the dataset
+ * (DECISIONS G1): risk flags are Low/Medium/High, contact types are Phone/Email/In person/Zoom,
+ * and a note is a single note_text.
+ */
 
-export type ClassYear = "Freshman" | "Sophomore" | "Junior" | "Senior" | "Graduate"
+import type { CLASS_YEARS, CONTACT_TYPES, RISK_FLAGS } from "./import/fields"
+import type { Severity } from "./import/types"
+
+export type RiskFlag = (typeof RISK_FLAGS)[number]
+export type ClassYear = (typeof CLASS_YEARS)[number]
+export type ContactType = (typeof CONTACT_TYPES)[number]
+
+export interface OutreachReason {
+  rule: string
+  points: number
+  text: string
+}
+
+/** Saved from a note during import (D19). */
+export interface ContactPreference {
+  channel: "Phone" | "Email" | "Text" | null
+  text: string
+  note_id: string
+  noted_on: string | null
+}
+
+export interface StudentLink {
+  student_id: string
+  name: string
+}
 
 export interface Student {
   student_id: string
@@ -9,93 +37,61 @@ export interface Student {
   email: string
   major: string
   class_year: ClassYear
-  credits: number
+  credits_earned: number
   gpa: number | null
   advisor: string
-  last_contact_date: string | null
   risk_flag: RiskFlag
+  /** The spreadsheet's last_contact_date, as imported. */
+  source_last_contact_date: string | null
+  /** The later of the newest note and the spreadsheet date (D22). */
+  last_contact_date: string | null
+  last_contact_source: "note" | "spreadsheet" | null
   days_since_contact: number | null
+  /** No notes and no spreadsheet date (D24). */
+  no_contact_on_record: boolean
   outreach_score: number
-  outreach_reasons: string[]
-  data_issues: string[]
+  outreach_reasons: OutreachReason[]
+  contact_preference: ContactPreference | null
+  /** Students linked during import as possibly the same person, in either direction (D15). */
+  possible_duplicates: StudentLink[]
+  note_count: number
 }
-
-export type ContactMethod = "email" | "phone" | "in_person" | "video" | "text" | "other"
 
 export interface ContactNote {
   note_id: string
   student_id: string
   contact_date: string
-  method: ContactMethod
+  contact_type: ContactType
   advisor: string
-  summary: string
-  body: string
+  note_text: string
   follow_up_date: string | null
+  is_sensitive: boolean
+  /** "import" for notes from a CSV, "app" for notes logged here. */
+  source: "import" | "app"
   created_at: string
 }
 
-export type IssueSeverity = "error" | "warning" | "info"
-
-export interface DataQualityIssue {
+/** What the import found and did about one student's data, for the detail page. */
+export interface StudentDataNote {
   rule: string
-  severity: IssueSeverity
-  description: string
-  affected_ids: string[]
+  title: string
+  message: string
   resolution: string
+  record_id: string | null
 }
 
-/** Stored student row after import, before derived outreach fields are computed. */
-export type StudentRecord = Omit<
-  Student,
-  "days_since_contact" | "outreach_score" | "outreach_reasons" | "data_issues"
-> & {
-  /** Issues attached to this student by the import. */
-  import_issues: string[]
+export interface NewNoteInput {
+  contact_date: string
+  contact_type: string
+  advisor: string
+  note_text: string
+  follow_up_date: string | null
+  is_sensitive: boolean
 }
 
-/** Raw spreadsheet rows. Every value is an untrusted string. */
-export type RawStudentRow = Record<
-  | "student_id"
-  | "first_name"
-  | "last_name"
-  | "email"
-  | "major"
-  | "class_year"
-  | "credits"
-  | "gpa"
-  | "advisor"
-  | "last_contact_date"
-  | "risk_flag",
-  string
->
+export type NoteFieldErrors = Partial<Record<keyof NewNoteInput, string>>
 
-export type RawNoteRow = Record<
-  | "note_id"
-  | "student_id"
-  | "contact_date"
-  | "method"
-  | "advisor"
-  | "summary"
-  | "body"
-  | "follow_up_date"
-  | "created_at",
-  string
->
-
-export interface ImportSummary {
-  student_count: number
-  note_count: number
-  issue_count: number
-  imported_at: string
-  source: "seed" | "upload"
-}
-
-export interface DataQualityReport {
-  summary: ImportSummary
-  issues: DataQualityIssue[]
-}
-
-export type LastContactFilter = "any" | "30" | "60" | "90" | "never"
+export type LastContactFilter = "any" | "30" | "60" | "90" | "none"
 
 export type StudentSortKey =
   | "student_id"
@@ -107,6 +103,7 @@ export type StudentSortKey =
   | "advisor"
   | "last_contact"
   | "risk"
+  | "score"
 
 export type SortDirection = "asc" | "desc"
 
@@ -126,6 +123,7 @@ export interface OutreachQueueFilters {
   risks?: RiskFlag[]
   class_years?: ClassYear[]
   min_days?: number
+  limit?: number
 }
 
 export interface OutreachStats {
@@ -135,18 +133,6 @@ export interface OutreachStats {
   contacted_this_week: number
 }
 
-export interface NewNoteInput {
-  student_id: string
-  contact_date: string
-  method: ContactMethod
-  advisor: string
-  summary: string
-  body: string
-  follow_up_date: string | null
-}
-
-export type NoteFieldErrors = Partial<Record<keyof NewNoteInput, string>>
-
 export interface StudentIndexEntry {
   student_id: string
   name: string
@@ -154,7 +140,34 @@ export interface StudentIndexEntry {
   advisor: string
 }
 
-export interface NotesSummary {
-  summary: string
-  suggested_opening: string
+export interface ImportSummaryRow {
+  import_id: string
+  kind: "students" | "notes"
+  source_name: string
+  source_kind: "upload" | "sample" | "seed"
+  accepted_by: "person" | "seed"
+  rows_in_file: number
+  rows_added: number
+  rows_updated: number
+  rows_unchanged: number
+  rows_excluded: number
+  created_at: string
+}
+
+/** One rule's results across the imports shown on the Data Quality page. */
+export interface RuleSummary {
+  rule: string
+  title: string
+  decision: string | null
+  severity: Severity
+  count: number
+  resolutions: Record<string, number>
+  records: string[]
+  examples: { record_id: string | null; message: string; original_value: string | null; final_value: string | null }[]
+}
+
+export interface DataQualityReport {
+  imports: ImportSummaryRow[]
+  rules: RuleSummary[]
+  totals: { fixes_accepted: number; edited: number; kept_as_is: number; rows_excluded: number; info: number }
 }

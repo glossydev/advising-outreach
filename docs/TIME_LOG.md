@@ -9,3 +9,4 @@ Approximate human time per session. AI wall-clock time is not counted.
 | 2026-10-08 | _(Adam to fill)_ | Reviewed the audit; redirected the import to an interactive, human-in-the-loop design with a prototype sample panel. Import design and draft rule catalog written. |
 | 2026-10-08 | _(Adam to fill)_ | Answered import/seed/onboarding questions; asked for SQLite-by-default storage. Phase 2: repo created, v0 export fixed (types, lint, build), pages verified. |
 | 2026-10-08 | _(Adam to fill)_ | Created GDS deployment 23 + database. Access verified; switched to npm. Phase 3: database layer, 23 import rules, seed/reset, scoring, 96 tests (SQLite + Postgres). |
+| 2026-10-08 | _(Adam to fill)_ | Phase 4: API routes and service layer, pages on the real database, mock data removed, data decisions visible in the UI. |

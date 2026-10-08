@@ -1,30 +1,33 @@
-import type { ContactMethod, NewNoteInput, NoteFieldErrors } from "./types"
-import { SUMMARY_MAX_LENGTH, TODAY_ISO } from "./config"
+import { TODAY_ISO } from "./config"
+import { isIsoDate } from "./import/dates"
+import { CONTACT_TYPES } from "./import/fields"
+import { containsSsn } from "./import/text"
+import type { NewNoteInput, NoteFieldErrors } from "./types"
 
-const METHODS: ContactMethod[] = ["email", "phone", "in_person", "video", "text", "other"]
-const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+export const NOTE_MAX_LENGTH = 5000
 
-export function validateNoteInput(input: NewNoteInput): NoteFieldErrors {
+/**
+ * Rules for a note logged in the app. Shared by the form (instant feedback) and the API (the
+ * authority). The same decisions as the importer: no future contact dates (D8) and no SSNs (D17).
+ */
+export function validateNoteInput(input: NewNoteInput, today: string = TODAY_ISO): NoteFieldErrors {
   const errors: NoteFieldErrors = {}
 
-  if (!input.contact_date || !ISO_DATE.test(input.contact_date)) {
-    errors.contact_date = "Enter the date of contact."
-  } else if (input.contact_date > TODAY_ISO) {
-    errors.contact_date = "Contact date cannot be in the future."
-  }
+  if (!input.contact_date || !isIsoDate(input.contact_date)) errors.contact_date = "Enter the date of contact."
+  else if (input.contact_date > today) errors.contact_date = "The contact date can't be after today."
 
-  if (!METHODS.includes(input.method)) errors.method = "Choose a contact method."
+  if (!(CONTACT_TYPES as readonly string[]).includes(input.contact_type)) errors.contact_type = "Choose how you made contact."
 
-  const summary = input.summary?.trim() ?? ""
-  if (!summary) errors.summary = "Summary is required."
-  else if (summary.length > SUMMARY_MAX_LENGTH) errors.summary = `Keep the summary to ${SUMMARY_MAX_LENGTH} characters.`
-
-  if (!input.body?.trim()) errors.body = "Notes are required."
+  const text = input.note_text?.trim() ?? ""
+  if (!text) errors.note_text = "Write what was discussed."
+  else if (text.length > NOTE_MAX_LENGTH) errors.note_text = `Keep the note under ${NOTE_MAX_LENGTH.toLocaleString()} characters.`
+  else if (containsSsn(text))
+    errors.note_text = "This looks like a Social Security number. Remove it before saving: SSNs must not be stored in advising notes."
 
   if (input.follow_up_date) {
-    if (!ISO_DATE.test(input.follow_up_date)) errors.follow_up_date = "Enter a valid date."
+    if (!isIsoDate(input.follow_up_date)) errors.follow_up_date = "Enter a valid date."
     else if (input.contact_date && input.follow_up_date < input.contact_date)
-      errors.follow_up_date = "Follow-up date must be on or after the contact date."
+      errors.follow_up_date = "The follow-up date must be on or after the contact date."
   }
 
   if (!input.advisor?.trim()) errors.advisor = "Advisor is required."

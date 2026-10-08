@@ -128,8 +128,8 @@ export function scoreStudent(student: ScoringStudent, notes: readonly ScoringNot
 
 /** Queue order: no contact on record first (D24), then highest score, then name. */
 export function compareOutreach(
-  a: { outreach: OutreachScore; sortName: string },
-  b: { outreach: OutreachScore; sortName: string },
+  a: { outreach: Pick<OutreachScore, "score" | "noContactOnRecord">; sortName: string },
+  b: { outreach: Pick<OutreachScore, "score" | "noContactOnRecord">; sortName: string },
 ): number {
   return (
     Number(b.outreach.noContactOnRecord) - Number(a.outreach.noContactOnRecord) ||

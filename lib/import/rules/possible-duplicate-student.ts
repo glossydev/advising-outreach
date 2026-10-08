@@ -10,6 +10,8 @@ interface Person {
   classYear: string
   advisor: string
   label: string
+  /** An earlier import's link, so a pair already linked isn't flagged again on re-import. */
+  linkedTo: string | null
 }
 
 /** "grace" / "gracie", "jon" / "john", "alex" / "alexander". */
@@ -36,6 +38,7 @@ export const possibleDuplicateStudent: Rule = {
       classYear: s.class_year.trim(),
       advisor: s.advisor,
       label: `${s.student_id} ${s.first_name} ${s.last_name} (${s.major}, ${s.class_year}, advisor ${s.advisor})`,
+      linkedTo: s.possible_duplicate_of,
     }))
     return activeRows(rows).flatMap((row) => {
       const me: Person = {
@@ -46,6 +49,7 @@ export const possibleDuplicateStudent: Rule = {
         classYear: valueOf(row, "class_year").trim(),
         advisor: valueOf(row, "advisor").trim(),
         label: "",
+        linkedTo: ctx.existing.students.get(valueOf(row, "student_id").trim())?.possible_duplicate_of ?? null,
       }
       me.label = `${me.id} ${valueOf(row, "first_name").trim()} ${valueOf(row, "last_name").trim()} (${valueOf(row, "major").trim()}, ${me.classYear}, advisor ${me.advisor})`
       const match = people.find(
@@ -59,6 +63,7 @@ export const possibleDuplicateStudent: Rule = {
       )
       people.push(me)
       if (!match || valueOf(row, "possible_duplicate_of") === match.id) return []
+      if (me.linkedTo === match.id || match.linkedTo === me.id) return [] // already linked by an earlier import
       return [
         makeIssue("possible_duplicate_student", "warning", row, undefined, `May be the same person as ${match.label}.`, {
           suggestions: [

@@ -2,7 +2,13 @@ import Link from "next/link"
 import type { Student } from "@/lib/types"
 import { fullName } from "@/lib/format"
 
-export function StudentCell({ student, linked = true }: { student: Student; linked?: boolean }) {
+export function StudentCell({
+  student,
+  linked = true,
+}: {
+  student: Pick<Student, "student_id" | "first_name" | "last_name" | "major">
+  linked?: boolean
+}) {
   const name = fullName(student)
   return (
     <div className="flex min-w-0 flex-col leading-tight">

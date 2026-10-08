@@ -192,6 +192,13 @@ describe("D15 possible_duplicate_student", () => {
     const linked = setValue(rows, 1, "possible_duplicate_of", "S1021")
     expect(ofRule(validateRows("students", linked, ctx), "possible_duplicate_student")).toEqual([])
   })
+  it("stays quiet on re-import when an earlier import already linked the pair", () => {
+    const stored = [
+      existingStudent({ student_id: "S1021", first_name: "Grace", last_name: "Okonkwo", email: "grace.okonkwo@example.edu", class_year: "Senior", credits_earned: 98 }),
+      existingStudent({ student_id: "S1050", first_name: "Gracie", last_name: "Okonkwo", email: "gracie.okonkwo@example.edu", class_year: "Senior", credits_earned: 96, possible_duplicate_of: "S1021" }),
+    ]
+    expect(ofRule(scan("students", [grace, gracie], existingData(stored)).issues, "possible_duplicate_student")).toEqual([])
+  })
   it("ignores different surnames", () => {
     const other = studentLine({ student_id: "S2", first_name: "Gracie", last_name: "Adams", email: "g.adams@example.edu" })
     expect(ofRule(scan("students", [grace, other]).issues, "possible_duplicate_student")).toEqual([])

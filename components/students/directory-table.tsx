@@ -152,25 +152,22 @@ export function DirectoryTable({
               <td className="px-3 py-2 font-mono text-[13px] tabular-nums whitespace-nowrap">
                 <span className="inline-flex items-center gap-1.5">
                   {s.student_id}
-                  {s.data_issues.length > 0 && (
+                  {s.possible_duplicates.length > 0 && (
                     <Tooltip>
                       <TooltipTrigger
                         render={
                           <span
                             className="inline-flex text-amber"
                             role="img"
-                            aria-label={`Data issues: ${s.data_issues.join("; ")}`}
+                            aria-label={`Possibly the same person as ${s.possible_duplicates.map((d) => `${d.student_id} ${d.name}`).join(", ")}`}
                           />
                         }
                       >
                         <TriangleAlert className="size-3.5" aria-hidden="true" />
                       </TooltipTrigger>
                       <TooltipContent className="max-w-72">
-                        <ul className="flex flex-col gap-0.5">
-                          {s.data_issues.map((issue) => (
-                            <li key={issue}>{issue}</li>
-                          ))}
-                        </ul>
+                        Possibly the same person as{" "}
+                        {s.possible_duplicates.map((d) => `${d.student_id} ${d.name}`).join(", ")}
                       </TooltipContent>
                     </Tooltip>
                   )}
@@ -181,7 +178,7 @@ export function DirectoryTable({
               </td>
               <td className="max-w-48 truncate px-3 py-2">{s.major}</td>
               <td className="px-3 py-2">{s.class_year}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{s.credits}</td>
+              <td className="px-3 py-2 text-right tabular-nums">{s.credits_earned}</td>
               <td className="px-3 py-2 text-right tabular-nums">
                 {s.gpa === null ? (
                   <span className="text-muted-foreground" aria-label="GPA missing">

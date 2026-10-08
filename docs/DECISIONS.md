@@ -150,6 +150,28 @@ Every factor adds a plain-language reason, and the reasons are shown to advisors
 - A "Don't show this again" checkbox is remembered in that browser (there are no user accounts to store it against).
 - The dialog can be reopened from the help menu. _(Adam, 2026-10-08.)_
 
+**P5: A "Before you reach out" card replaces v0's AI summary card.**
+- v0 showed generated summaries from mock data. The real AI summary was deferred, and a fake one would misrepresent what the tool does.
+- The card lists what an advisor should know before contacting this student, all from decisions already made on the data:
+  - a stated contact preference (D19);
+  - an unanswered outreach (D25);
+  - a follow-up date (D20);
+  - sensitive notes (D18);
+  - a last contact that has no note behind it (D22);
+  - no contact on record (D24).
+- It's deterministic, explainable, and works with no API key. _(Claude, 2026-10-08.)_
+
+**P6: Logging a note applies the same data rules as the import.**
+- **The form:**
+  - one note field, matching the dataset (v0 had a summary plus a body);
+  - contact types Phone / Email / In person / Zoom;
+  - the type defaults to the student's preferred channel when one is saved.
+- **Blocked:** a contact date after today (D8) and an SSN-shaped number (D17), with a message saying why.
+- **Warned, not blocked:**
+  - choosing a channel the student asked not to be contacted by (D19);
+  - note text that mentions sensitive topics, which suggests ticking "Sensitive note" (D18). The advisor decides.
+- **IDs:** new notes continue the dataset's ID pattern (N058, N059, …). _(Claude, 2026-10-08.)_
+
 ## Technical decisions
 
 **T1: Package manager is npm.** _(Revised 2026-10-08. The first version was pnpm 12.3.4, as pinned by v0.)_

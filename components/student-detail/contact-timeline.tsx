@@ -1,19 +1,17 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronDown, CircleEllipsis, Mail, MessageSquare, Phone, Users, Video } from "lucide-react"
+import { ChevronDown, Lock, Mail, Phone, Users, Video } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import type { ContactMethod, ContactNote } from "@/lib/types"
-import { METHOD_LABELS, formatDate, isBeforeToday } from "@/lib/format"
+import type { ContactNote, ContactType } from "@/lib/types"
+import { formatDate, isBeforeToday } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-const METHOD_ICONS: Record<ContactMethod, React.ComponentType<{ className?: string }>> = {
-  email: Mail,
-  phone: Phone,
-  in_person: Users,
-  video: Video,
-  text: MessageSquare,
-  other: CircleEllipsis,
+const TYPE_ICONS: Record<ContactType, React.ComponentType<{ className?: string }>> = {
+  Phone: Phone,
+  Email: Mail,
+  "In person": Users,
+  Zoom: Video,
 }
 
 const VISIBLE_COUNT = 3
@@ -33,8 +31,39 @@ function FollowUpChip({ date }: { date: string }) {
   )
 }
 
+/** D18: a sensitive note stays collapsed until someone chooses to read it. Its follow-up date still shows. */
+function NoteBody({ note }: { note: ContactNote }) {
+  const [revealed, setRevealed] = useState(false)
+  const bodyId = `note-${note.note_id}-body`
+  if (!note.is_sensitive) return <p className="leading-relaxed whitespace-pre-line text-foreground text-pretty">{note.note_text}</p>
+  if (!revealed) {
+    return (
+      <div className="flex flex-wrap items-center gap-3 rounded-md border border-dashed border-shade/40 bg-muted/60 px-3 py-2">
+        <p className="flex flex-1 items-center gap-2 text-[13px] text-muted-foreground">
+          <Lock className="size-4 shrink-0" aria-hidden="true" />
+          Sensitive note: hidden because it contains personal information.
+        </p>
+        <Button variant="outline" size="sm" className="bg-card" aria-expanded={false} onClick={() => setRevealed(true)}>
+          Show note
+        </Button>
+      </div>
+    )
+  }
+  return (
+    <div id={bodyId} className="flex flex-col gap-2 rounded-md border border-shade/30 bg-muted/40 px-3 py-2">
+      <p className="flex items-center gap-1.5 text-[12px] font-medium text-muted-foreground">
+        <Lock className="size-3.5" aria-hidden="true" /> Sensitive
+      </p>
+      <p className="leading-relaxed whitespace-pre-line text-foreground text-pretty">{note.note_text}</p>
+      <Button variant="link" size="sm" className="self-start px-0 text-azurite" aria-expanded={true} onClick={() => setRevealed(false)}>
+        Hide note
+      </Button>
+    </div>
+  )
+}
+
 function TimelineEntry({ note, last }: { note: ContactNote; last: boolean }) {
-  const Icon = METHOD_ICONS[note.method]
+  const Icon = TYPE_ICONS[note.contact_type] ?? Users
   return (
     <li className="relative flex gap-3">
       <div className="flex flex-col items-center">
@@ -43,20 +72,21 @@ function TimelineEntry({ note, last }: { note: ContactNote; last: boolean }) {
         </span>
         {!last && <span className="w-px flex-1 bg-border" aria-hidden="true" />}
       </div>
-      <article className={cn("flex min-w-0 flex-1 flex-col gap-1", !last && "pb-5")}>
+      <article className={cn("flex min-w-0 flex-1 flex-col gap-1.5", !last && "pb-5")}>
         <header className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[13px] text-muted-foreground">
           <time dateTime={note.contact_date} className="font-medium text-foreground tabular-nums">
             {formatDate(note.contact_date)}
           </time>
           <span aria-hidden="true">·</span>
-          <span>{METHOD_LABELS[note.method]}</span>
+          <span>{note.contact_type}</span>
           <span aria-hidden="true">·</span>
           <span>{note.advisor}</span>
+          <span aria-hidden="true">·</span>
+          <span className="font-mono text-[12px]">{note.note_id}</span>
         </header>
-        <h3 className="font-medium text-navy text-pretty">{note.summary}</h3>
-        <p className="leading-relaxed whitespace-pre-line text-foreground text-pretty">{note.body}</p>
+        <NoteBody note={note} />
         {note.follow_up_date && (
-          <div className="pt-1">
+          <div>
             <FollowUpChip date={note.follow_up_date} />
           </div>
         )}

@@ -14,10 +14,6 @@ export function isBeforeToday(iso: string) {
   return daysSince(iso) > 0
 }
 
-export function addDays(iso: string, days: number) {
-  return new Date(new Date(iso).getTime() + days * DAY_MS).toISOString().slice(0, 10)
-}
-
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
   day: "numeric",
@@ -40,11 +36,5 @@ export function fullName(s: { first_name: string; last_name: string }) {
   return `${s.first_name} ${s.last_name}`
 }
 
-export const METHOD_LABELS = {
-  email: "Email",
-  phone: "Phone",
-  in_person: "In person",
-  video: "Video",
-  text: "Text",
-  other: "Other",
-} as const
+/** Shown wherever a student has no notes and no spreadsheet date (D24): not "never contacted". */
+export const NO_CONTACT_LABEL = "No contact on record"

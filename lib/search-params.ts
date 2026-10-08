@@ -1,3 +1,4 @@
+import { CLASS_YEARS, RISK_FLAGS } from "./import/fields"
 import type {
   ClassYear,
   LastContactFilter,
@@ -10,10 +11,9 @@ import type {
 
 export type SearchParams = Record<string, string | string[] | undefined>
 
-export const RISK_FLAGS: RiskFlag[] = ["high", "medium", "low", "unknown"]
-export const CLASS_YEARS: ClassYear[] = ["Freshman", "Sophomore", "Junior", "Senior", "Graduate"]
+export { CLASS_YEARS, RISK_FLAGS }
 export const MIN_DAY_OPTIONS = [14, 30, 60, 90] as const
-const LAST_CONTACT: LastContactFilter[] = ["any", "30", "60", "90", "never"]
+const LAST_CONTACT: LastContactFilter[] = ["any", "30", "60", "90", "none"]
 const SORT_KEYS: StudentSortKey[] = [
   "student_id",
   "name",
@@ -24,6 +24,7 @@ const SORT_KEYS: StudentSortKey[] = [
   "advisor",
   "last_contact",
   "risk",
+  "score",
 ]
 
 function first(value: string | string[] | undefined) {
@@ -40,8 +41,8 @@ function list<T extends string>(value: string | string[] | undefined, allowed: r
 export function parseQueueParams(params: SearchParams): Omit<OutreachQueueFilters, "advisor"> {
   const minDays = Number(first(params.min_days))
   return {
-    risks: list(params.risk, RISK_FLAGS),
-    class_years: list(params.year, CLASS_YEARS),
+    risks: list<RiskFlag>(params.risk, RISK_FLAGS),
+    class_years: list<ClassYear>(params.year, CLASS_YEARS),
     min_days: (MIN_DAY_OPTIONS as readonly number[]).includes(minDays) ? minDays : undefined,
   }
 }
@@ -57,8 +58,8 @@ export function parseDirectoryParams(params: SearchParams): Omit<StudentFilters,
   return {
     q: first(params.q)?.slice(0, 100) ?? "",
     major: first(params.major) || undefined,
-    class_years: list(params.year, CLASS_YEARS),
-    risks: list(params.risk, RISK_FLAGS),
+    class_years: list<ClassYear>(params.year, CLASS_YEARS),
+    risks: list<RiskFlag>(params.risk, RISK_FLAGS),
     last_contact: lastContact && LAST_CONTACT.includes(lastContact) ? lastContact : "any",
     sort: sort && SORT_KEYS.includes(sort) ? sort : "name",
     dir: dir === "desc" ? "desc" : "asc",

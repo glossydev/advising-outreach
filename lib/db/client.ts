@@ -20,10 +20,12 @@ export const DEFAULT_SQLITE_FILE = "data/app.db"
  */
 export function resolveDbConfig(url: string | undefined = process.env.DATABASE_URL): DbConfig {
   const value = url?.trim()
-  if (!value) return { dialect: "sqlite", file: path.resolve(process.cwd(), DEFAULT_SQLITE_FILE) }
+  // The database file is runtime data, not part of the build: keep the bundler from tracing it.
+  const cwd = /* turbopackIgnore: true */ process.cwd()
+  if (!value) return { dialect: "sqlite", file: path.resolve(cwd, DEFAULT_SQLITE_FILE) }
   if (/^postgres(ql)?:\/\//i.test(value)) return { dialect: "postgres", url: value }
   if (value === ":memory:" || value === "file::memory:") return { dialect: "sqlite", file: ":memory:" }
-  if (value.startsWith("file:")) return { dialect: "sqlite", file: path.resolve(process.cwd(), value.slice(5)) }
+  if (value.startsWith("file:")) return { dialect: "sqlite", file: path.resolve(/* turbopackIgnore: true */ cwd, value.slice(5)) }
   // Only the scheme is echoed back: the rest of a connection string may hold a password.
   throw new Error(
     `DATABASE_URL must be a postgres:// URL or a file: path for SQLite (got a "${value.split(":")[0]}:" value).`,

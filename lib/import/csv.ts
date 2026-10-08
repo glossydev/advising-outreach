@@ -10,6 +10,9 @@ export interface CsvTable {
 export function parseCsv(text: string): CsvTable {
   const rows = parse(text, {
     bom: true,
+    // Any line ending ends a row, even when a file mixes them (edited on Windows and a Mac, say).
+    // Otherwise a stray "\r" sticks to the last value of a row.
+    record_delimiter: ["\r\n", "\n", "\r"],
     relax_column_count: true,
     relax_quotes: true,
     skip_empty_lines: true,

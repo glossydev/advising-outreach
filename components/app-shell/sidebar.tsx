@@ -19,7 +19,7 @@ export function Sidebar() {
         <NavLinks />
       </nav>
       <p className="border-t border-sidebar-border px-5 py-3 text-[12px] leading-relaxed text-white/75">
-        Scores are rule-based. Mock data only.
+        Scores are rule-based. Fictional student data, for demonstration only.
       </p>
     </aside>
   )
