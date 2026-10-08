@@ -118,3 +118,24 @@ Tools in play:
 - Claude tried to find a student's detail-page link by scraping HTML; rows navigate on click, not via links. Switched to checking the pages in a real browser.
 
 **Noticed for later (Phase 5 UI work):** at a ~1230px-wide window the outreach-queue table is wider than the page, and the "Log contact" column is cut off behind a horizontal scroll.
+
+## 2026-10-08 — GDS access check, and switching to npm
+
+**What Claude Code did**
+- Adam created GDS deployment 23. Claude verified access through the deploy tools and over HTTPS:
+  - staging serves the latest commit;
+  - the Postgres database exists and answers read-only queries (empty, as expected);
+  - the connection string is only reachable from the GDS box;
+  - production isn't set up yet.
+
+  Secrets from the env file were read but not repeated anywhere.
+- Reading GDS's build log showed it installs with **npm**, not pnpm, so it ignored our lockfile.
+- Switched the project to npm (T1):
+  - `package-lock.json`, with install-script approvals in `package.json` (`allowScripts`);
+  - Node 22.12+;
+  - re-verified typecheck, lint and build.
+
+**What Claude got wrong**
+- In Phase 0 Claude kept pnpm because v0 had shipped a pnpm lockfile, without checking how the deployment target installs packages. GDS's build log is what caught it.
+- `npm audit fix` reported a fix for the 9 high advisories, but there isn't one: the vulnerable package (`braces` 3.0.3) has no patched release. Claude checked the registry instead of trusting the tool, and recorded the risk as accepted, with reasoning (T8).
+- An install-script listing suggested `better-sqlite3` would compile C++ code on install (`node-gyp rebuild`), which could break a deploy machine without a compiler. Inspecting the package showed it ships precompiled binaries and never compiles. The build step is denied explicitly so it stays that way.

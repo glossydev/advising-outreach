@@ -4,7 +4,7 @@
  * Reads the untouched files in data/source/ and writes docs/DATA_AUDIT.md.
  * It reports what it finds and decides nothing; decisions go in docs/DECISIONS.md.
  *
- *   pnpm exec tsx scripts/audit.ts
+ *   npm run data:audit
  */
 import { createHash } from "node:crypto"
 import { readFileSync, statSync, writeFileSync } from "node:fs"

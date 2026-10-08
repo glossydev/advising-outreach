@@ -141,7 +141,13 @@ _Fires on sample: 0. All 47 students with both agree once dates are normalized (
 
 ## Technical decisions
 
-**T1: Package manager is pnpm 12.3.4.** v0 shipped a pnpm lockfile and pinned `pnpm@12.3.4` in `packageManager`; corepack honors the pin, so every machine gets the same version. pnpm 12 also checks the lockfile against supply-chain policies and blocks dependency install scripts until approved. Only `esbuild` (needed by `tsx`) is approved, in `pnpm-workspace.yaml`.
+**T1: Package manager is npm.** _(Revised 2026-10-08. The first version was pnpm 12.3.4, as pinned by v0.)_
+- **Why the change:**
+  - GDS installs with npm and was ignoring `pnpm-lock.yaml`, so the deployed app got whatever versions npm resolved that day, not the ones we tested.
+  - npm ships with every Node install, so someone cloning the repo needs nothing extra.
+- **Locking:** `package-lock.json` pins versions everywhere.
+- **Install scripts:** npm's `allowScripts` field in `package.json` approves `esbuild` and `unrs-resolver` (needed by `tsx` and ESLint). It denies `better-sqlite3`'s build step, which isn't needed: the package ships precompiled binaries for Windows, macOS and Linux (x64/ARM, glibc/musl), so nothing is compiled on any machine, including GDS.
+- **Node:** 22.12 or newer (`engines`), required by `better-sqlite3` 13 and Vitest 5. Node 20 reached end of life in April 2026.
 
 **T2: Storage is a SQLite file by default, or Postgres when `DATABASE_URL` points to one; queries go through Kysely.** _(Revised 2026-10-08. The first version chose Postgres + Drizzle everywhere.)_
 - **Fresh clone:** needs no database server and no secrets. With `DATABASE_URL` unset, the app uses `data/app.db` (gitignored), created and filled by `pnpm seed`.
@@ -155,6 +161,13 @@ _Fires on sample: 0. All 47 students with both agree once dates are normalized (
 **T6: ESLint 9, not 10.** Next 16.4's lint config depends on plugins (`eslint-plugin-react`, `-import`, `-jsx-a11y`) that don't support ESLint 10 yet. ESLint 9 is past its support window, but it only runs on developer machines and never ships with the app. Revisit when the plugins catch up.
 
 **T7: The reference date is `NEXT_PUBLIC_REFERENCE_DATE`, defaulting to 2026-10-05.** The plan called it `REFERENCE_DATE`, but client components (the log-contact form's default date) import `lib/config.ts` too. A server-only variable would let the browser and server disagree about "today". An invalid value falls back to the default with a warning.
+
+**T8: Accepted for now: 9 "high" `npm audit` advisories, all the same issue.**
+- **The issue:** `braces` ≤ 3.0.3 ([GHSA-vfj7-8cjw-p6xm](https://github.com/advisories/GHSA-vfj7-8cjw-p6xm)), stack exhaustion from deeply nested glob patterns.
+- **How it gets in:** through `fast-glob`, used by ESLint's Next plugin and by the `shadcn` package.
+- **Why it can't be fixed yet:** no patched `braces` has been published (3.0.3 is the latest), so `npm audit fix` can't resolve it, despite reporting that a fix is available.
+- **Why the risk is acceptable:** both paths are build-time tooling, and nothing in the app passes user input to glob matching. `shadcn` moved to dev dependencies, since only its stylesheet is used, at build time.
+- Revisit when `braces` publishes a fix.
 
 **T4: Import rules are plain functions shared by browser and server.** The browser re-checks a row the moment it's edited, so highlighting updates instantly. The server re-runs the same functions on commit and refuses anything still blocking, so the browser never has the final say.
 
