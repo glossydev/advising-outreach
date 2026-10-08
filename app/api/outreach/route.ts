@@ -15,7 +15,7 @@ const Query = z.object({
   limit: z.coerce.number().int().min(1).max(500).optional(),
 })
 
-/** GET /api/outreach: the ranked queue (no contact on record first, then by score) and its summary counts. */
+/** GET /api/outreach: the ranked queue (never contacted first, then by score) and its summary counts. */
 export async function GET(request: Request) {
   return handle(async () => {
     const query = Query.parse(queryOf(request.url))

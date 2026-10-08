@@ -25,7 +25,8 @@ const STANDING: [year: string, minUnits: number][] = [
   ["Junior", 60],
   ["Senior", 90],
 ]
-const KNOWN_CLASS_YEARS = ["Freshman", "Sophomore", "Junior", "Senior", "Graduate"]
+/** As listed in the dataset's README. */
+const KNOWN_CLASS_YEARS = ["Freshman", "Sophomore", "Junior", "Senior"]
 const KNOWN_RISK_FLAGS = ["low", "medium", "high"]
 const MAX_PLAUSIBLE_UNITS = 200
 const SHORT_NOTE_CHARS = 40
@@ -279,15 +280,16 @@ const allColumns = [
 const undescribed = allColumns.filter((c) => !readmeText.includes(c.split(": ")[1]))
 add({
   section: "files",
-  title: "README.txt has no column descriptions",
+  title: "Columns the README doesn't describe",
   count: undescribed.length,
   unit: `of ${allColumns.length} columns undescribed`,
-  detail: `README.txt is ${statSync(readmePath).size} bytes. The brief says it holds the column descriptions, so the meaning of every column has to be inferred from its header and its values (see the column profiles above). Columns the README might describe but the CSVs lack can't be checked either.`,
+  detail: `README.txt is ${statSync(readmePath).size} bytes. Each CSV column should be described there.`,
   affected: undescribed,
   options: [
     "Treat the CSV headers as the spec and write down the assumed meaning of each column in DECISIONS.md.",
-    "Pause until the hiring team replies (Adam has asked), and adjust if a README arrives.",
+    "Ask the hiring team for the column descriptions.",
   ],
+  cleanNote: "every column in both files is described in README.txt",
 })
 
 for (const table of [students, notes]) {
@@ -453,7 +455,7 @@ add({
 const unknownYears = S.filter((r) => !KNOWN_CLASS_YEARS.includes(t(r.v.class_year)))
 add({
   section: "students",
-  title: "class_year outside Freshman / Sophomore / Junior / Senior / Graduate",
+  title: "class_year outside Freshman / Sophomore / Junior / Senior",
   count: unknownYears.length,
   unit: "rows",
   detail: "",
@@ -1160,6 +1162,8 @@ push(
   "",
   "Personal data in this report: SSN-like and phone-like numbers are masked, and notes with sensitive content are described by matched keyword, not quoted.",
   "",
+  "**Source history:** README.txt arrived empty (0 bytes) with the original files. Until 2026-10-08 the CSV headers were the only spec, and the first version of this report listed that as its first finding. The hiring team then sent the full README, now in `data/source/README.txt`, and this report checks the data against it. It confirmed the meanings already inferred, with two corrections recorded in DECISIONS.md: a blank `last_contact_date` means never contacted (D24), and class years are Freshman–Senior only (D9).",
+  "",
   "## Summary",
   "",
   "| # | Finding | Count | Decision |",
@@ -1194,7 +1198,7 @@ sectionKeys.forEach((key, si) => {
       "",
       "### Column profiles",
       "",
-      "With no README, this is the only description of the columns: what each one holds, as found.",
+      "What each column actually holds, as found, to compare with the README's descriptions.",
       "",
     )
     push(

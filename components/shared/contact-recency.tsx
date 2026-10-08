@@ -2,7 +2,7 @@ import { OVERDUE_DAYS } from "@/lib/config"
 import { NO_CONTACT_LABEL, formatDate, formatDaysAgo } from "@/lib/format"
 import { cn } from "@/lib/utils"
 
-/** "12 days ago" in muted text; overdue counts and "No contact on record" render in Arizona Red. */
+/** "12 days ago" in muted text; overdue counts and "Never contacted" render in Arizona Red. */
 export function DaysSince({ days, className }: { days: number | null; className?: string }) {
   if (days === null) return <span className={cn("font-medium text-signal", className)}>{NO_CONTACT_LABEL}</span>
   return (

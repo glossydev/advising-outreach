@@ -36,5 +36,5 @@ export function fullName(s: { first_name: string; last_name: string }) {
   return `${s.first_name} ${s.last_name}`
 }
 
-/** Shown wherever a student has no notes and no spreadsheet date (D24): not "never contacted". */
-export const NO_CONTACT_LABEL = "No contact on record"
+/** Shown wherever a student has no notes and no spreadsheet date (D24). The README defines blank as never contacted. */
+export const NO_CONTACT_LABEL = "Never contacted"

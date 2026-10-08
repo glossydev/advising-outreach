@@ -19,7 +19,7 @@ Two kinds of entries:
 
 ### Checks on any file
 
-**D1 · `required_value_missing` · blocking.** A required column (see "Assumed column meanings" in IMPORT_DESIGN.md) is blank. No suggestion: the user types a value or excludes the row. _Fires on sample: 0._
+**D1 · `required_value_missing` · blocking.** A required column (see "Column meanings" in IMPORT_DESIGN.md) is blank. No suggestion: the user types a value or excludes the row. _Fires on sample: 0._
 
 **D2 · `duplicate_id_in_file` · blocking.** The same `student_id` or `note_id` appears on more than one row. If the rows are identical, the suggestion is to exclude the extra copies; otherwise the user picks which row to keep. _Fires on sample: 0._
 
@@ -44,7 +44,7 @@ _Fires on sample: 0 on the first import. Re-importing the sample notes triggers 
 
 ### Values
 
-**D9 · `value_not_in_list` · blocking.** `class_year`, `risk_flag` or `contact_type` isn't one of the allowed values. If it differs only in case or spacing (`low`, ` High`), the matching value is suggested; otherwise the user picks from the list. Allowed values follow the dataset (G1): `Zoom` stays `Zoom` rather than becoming v0's "video". _Fires on sample: 0._
+**D9 · `value_not_in_list` · blocking.** `class_year`, `risk_flag` or `contact_type` isn't one of the allowed values. If it differs only in case or spacing (`low`, ` High`), the matching value is suggested; otherwise the user picks from the list. Allowed values follow the dataset and its README (G1): `Zoom` stays `Zoom` rather than becoming v0's "video", and class years are Freshman / Sophomore / Junior / Senior. v0's extra "Graduate" was removed once the README arrived. _Fires on sample: 0._
 
 **D10 · `number_invalid` · blocking.** `gpa` isn't a number between 0.0 and 4.0, or `credits_earned` isn't a whole number of 0 or more. A blank GPA is allowed and shows as "—". _Fires on sample: 0._
 
@@ -114,7 +114,9 @@ _Fires on sample: 0. All 47 students with both agree once dates are normalized (
 
 ### Display and scoring (the smart feature)
 
-**D24 · `no_contact_on_record` · scoring rule.** A student with no notes and no readable spreadsheet date shows as **"No contact on record"**, not "Never contacted", because a spreadsheet can't prove a contact never happened. They rank at the top of the outreach queue. _Applies to 3 students on sample: S1006, S1018 (High risk), S1040 (audit 4.1)._
+**D24 · `no_contact_on_record` · scoring rule.** A student with no notes and no spreadsheet date shows as **"Never contacted"** and ranks at the top of the outreach queue. _Applies to 3 students on sample: S1006, S1018 (High risk), S1040 (audit 4.1)._
+- _Revised 2026-10-08, when the README arrived:_ the first version said "No contact on record", on the grounds that a spreadsheet can't prove a contact never happened. The README defines it: "Blank = never contacted". The data owner's definition wins (G1).
+- S1040's "N/A" is a placeholder rather than a blank. D5 suggests clearing it, after which it means the same thing.
 
 **D25 · `waiting_on_student` · scoring rule.** If a student's newest note is waiting on them ("no reply", "no response", "awaiting a reply", "left voicemail"), their outreach priority goes up and the reason says how long they've been waiting.
 - _Applies to 4 students on sample, all High risk, waiting 69–138 days (audit 5.4)._
@@ -133,7 +135,7 @@ Every factor adds a plain-language reason, and the reasons are shown to advisors
 
 | Audit finding | Decision |
 |---|---|
-| 1.1 README.txt is empty | The CSV headers are the spec. Assumed column meanings are written down in IMPORT_DESIGN.md. Revisit if the hiring team sends the README. |
+| 1.1 README.txt is empty | Until it arrived, the CSV headers were the spec and the inferred meanings were written down in IMPORT_DESIGN.md. **Resolved 2026-10-08:** Adam asked the hiring team, and they sent the full README (now `data/source/README.txt`; the empty original is in git history). It confirmed every inferred meaning except two: blank `last_contact_date` = never contacted (D24 revised), and no "Graduate" class year (D9). It also states that all the data, including emails on the reserved `example.edu` domain, is synthetic. |
 | 3.2 Short notes | No action. "Left voicemail. No response." is a complete note. |
 | 3.3 Near-identical notes | No rule. N026/N036 is evidence for D15. N044/N048 is a false positive, left visible in the audit. |
 
@@ -158,7 +160,7 @@ Every factor adds a plain-language reason, and the reasons are shown to advisors
   - a follow-up date (D20);
   - sensitive notes (D18);
   - a last contact that has no note behind it (D22);
-  - no contact on record (D24).
+  - never contacted (D24).
 - It's deterministic, explainable, and works with no API key. _(Claude, 2026-10-08.)_
 
 **P6: Logging a note applies the same data rules as the import.**

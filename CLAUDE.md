@@ -28,7 +28,7 @@ Tests on Postgres too: start a throwaway container and point `TEST_DATABASE_URL`
 
 - **Dataset and brief beat the v0 scaffold** (DECISIONS G1). v0 never saw the CSVs.
 - **The import never changes data silently** (G2). Every data rule is a named rule with a suggested fix that a person accepts. One decision in DECISIONS.md = one named rule in code, and the rule name appears in the entry. Design: `docs/IMPORT_DESIGN.md`.
-- **Never modify `data/source/`.** Those are the hiring team's files, kept byte-for-byte (see `.gitattributes`).
+- **Never modify `data/source/`.** Those are the hiring team's files, kept byte-for-byte (see `.gitattributes`). The one exception was by them: `README.txt` arrived empty, and on 2026-10-08 it was replaced with the full version they sent (the empty original is in git history). It is the column spec.
 - **All data access goes through the service layer** (`lib/services/`). Server components read via `lib/data.ts` (a thin wrapper that opens the shared database); route handlers in `app/api/` validate with Zod and call the same services. Data changes from the browser go through the API, never server actions (the advisor cookie is the one server action: a view preference, not data). API reference: `docs/API.md`.
 - **Use `TODAY` from `lib/config.ts`, never `new Date()`,** for anything date-relative (days since contact, overdue, "future" dates). Real timestamps such as `created_at` may use the clock.
 - **Portable SQL only** (DECISIONS T2): dates and JSON as text, booleans as 0/1, text IDs; nothing dialect-specific.

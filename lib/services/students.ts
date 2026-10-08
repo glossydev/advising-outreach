@@ -127,7 +127,7 @@ function derive({ rows, notesByStudent }: Loaded, today: string): Student[] {
 }
 
 const RISK_ORDER: Record<string, number> = { High: 0, Medium: 1, Low: 2 }
-const YEAR_ORDER: Record<string, number> = { Freshman: 0, Sophomore: 1, Junior: 2, Senior: 3, Graduate: 4 }
+const YEAR_ORDER: Record<string, number> = { Freshman: 0, Sophomore: 1, Junior: 2, Senior: 3 }
 
 function compareBy(key: StudentSortKey) {
   return (a: Student, b: Student): number => {
@@ -182,7 +182,7 @@ export async function listStudents(db: Db, filters: StudentFilters = {}, today =
   return result.sort((a, b) => (filters.dir === "desc" ? -sorter(a, b) : sorter(a, b)) || byName(a, b))
 }
 
-/** The ranked outreach queue: no contact on record first, then by score (D24). */
+/** The ranked outreach queue: never contacted first, then by score (D24). */
 export async function getOutreachQueue(db: Db, filters: OutreachQueueFilters = {}, today = TODAY_ISO): Promise<Student[]> {
   const ranked = derive(await load(db), today)
     .filter((s) => !filters.advisor || s.advisor === filters.advisor)

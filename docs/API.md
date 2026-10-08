@@ -39,7 +39,7 @@ Search, filter, sort and page the directory.
 | `q` | Name, student ID or email (substring, case-insensitive) |
 | `advisor`, `major` | Exact value |
 | `classYear`, `risk` | Comma-separated: `Junior,Senior`; `High,Medium` |
-| `lastContact` | `30`, `60`, `90` (that many days or more, or none on record), `none` (no contact on record) |
+| `lastContact` | `30`, `60`, `90` (that many days or more, or never contacted), `none` (never contacted) |
 | `minDaysSince` | Number of days |
 | `sort` | `name` (default), `student_id`, `major`, `class_year`, `credits`, `gpa`, `advisor`, `last_contact`, `risk`, `score` |
 | `dir` | `asc` (default) or `desc` |
@@ -152,20 +152,20 @@ A future date with an SSN → `422`
 
 ## `GET /api/outreach`
 
-The ranked queue (no contact on record first, then highest score; D24) and the summary counts.
+The ranked queue (never contacted first, then highest score; D24) and the summary counts.
 
 | Parameter | Values |
 |---|---|
 | `advisor` | Exact value |
 | `risk`, `classYear` | Comma-separated |
-| `minDaysSince` | Days since last contact (students with none on record always qualify) |
+| `minDaysSince` | Days since last contact (students never contacted always qualify) |
 | `limit` | Max students returned |
 
 `GET /api/outreach?limit=5` (students trimmed to ID and score)
 
 ```json
 {
-  "students": [ "S1018 (80, no contact on record)", "S1006 (55, no contact on record)", "S1040 (55, no contact on record)", "S1044 (90)", "S1014 (90)" ],
+  "students": [ "S1018 (80, never contacted)", "S1006 (55, never contacted)", "S1040 (55, never contacted)", "S1044 (90)", "S1014 (90)" ],
   "stats": { "assigned": 50, "overdue": 29, "high_risk": 10, "contacted_this_week": 2 }
 }
 ```

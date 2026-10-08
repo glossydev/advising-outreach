@@ -84,7 +84,7 @@ export function scoreStudent(student: ScoringStudent, notes: readonly ScoringNot
   const lastContact = lastContactFor(student, notes)
   const days = lastContact ? daysBetween(lastContact.date, today) : null
 
-  if (!lastContact) add("no_contact_on_record", WEIGHTS.noContactOnRecord, "No contact on record")
+  if (!lastContact) add("no_contact_on_record", WEIGHTS.noContactOnRecord, "Never contacted")
   else if (days !== null) {
     const band = WEIGHTS.daysSinceContact.find((b) => days >= b.minDays)
     if (band) add("days_since_contact", band.points, `No contact in ${days} days`)
@@ -126,7 +126,7 @@ export function scoreStudent(student: ScoringStudent, notes: readonly ScoringNot
   }
 }
 
-/** Queue order: no contact on record first (D24), then highest score, then name. */
+/** Queue order: never contacted first (D24), then highest score, then name. */
 export function compareOutreach(
   a: { outreach: Pick<OutreachScore, "score" | "noContactOnRecord">; sortName: string },
   b: { outreach: Pick<OutreachScore, "score" | "noContactOnRecord">; sortName: string },

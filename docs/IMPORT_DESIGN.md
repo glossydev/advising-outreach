@@ -85,26 +85,26 @@ The panel is controlled by an environment variable (`ENABLE_PROTOTYPE_TOOLS`, on
 | Storage | SQLite file by default, Postgres via `DATABASE_URL` (T2) | `imports` (who, when, kind, file name and SHA-256, row counts) and `import_issues` (rule, row, column, original value, final value, resolution). For the SSN rule the original value is stored masked. |
 | UI | `/import` (new) and `/data-quality` | The step-by-step import, then the history and fixes report. v0's replace-everything upload card is retired; its severity badges and per-rule issue list are reused for the report. |
 
-## Assumed column meanings
+## Column meanings
 
-The README that should describe the columns arrived empty, so these meanings are inferred from the headers and values (see the column profiles in DATA_AUDIT.md). They are what the rules validate against.
+These are from the dataset's README (`data/source/README.txt`), and they are what the rules validate against. The README first arrived empty, so for a day these meanings were inferred from the headers and values. When the full file came, it confirmed them except for two corrections, marked below.
 
-| File | Column | Assumed meaning | Required |
+| File | Column | Meaning | Required |
 |---|---|---|---|
-| students | `student_id` | Unique student ID, `S` + 4 digits in this data | yes |
+| students | `student_id` | Unique ID (`S` + 4 digits in this data) | yes |
 | students | `first_name`, `last_name` | Student's name | yes |
-| students | `email` | Student's email | yes |
-| students | `major` | Declared major; "Undeclared" is a valid value | yes |
-| students | `class_year` | Freshman / Sophomore / Junior / Senior (Graduate also accepted) | yes |
-| students | `credits_earned` | Completed units, which is what UA class standing is based on | yes |
-| students | `gpa` | Cumulative GPA, 0.0–4.0 | no |
-| students | `advisor` | Assigned advisor's last name | yes |
-| students | `last_contact_date` | Last contact as recorded in the spreadsheet; kept as the source value, while the app works out last contact from the notes | no |
-| students | `risk_flag` | Low / Medium / High; who sets it and how is unknown | yes |
+| students | `email` | Student's email (fictional, `example.edu`) | yes |
+| students | `major` | Major; "Undeclared" and "Pre-Nursing" are valid values | yes |
+| students | `class_year` | Freshman / Sophomore / Junior / Senior. _Corrected: v0's "Graduate" isn't a value._ | yes |
+| students | `credits_earned` | Total credits completed (what UA class standing is based on) | yes |
+| students | `gpa` | Cumulative GPA (4.0 scale) | no |
+| students | `advisor` | Assigned advisor (last name) | yes |
+| students | `last_contact_date` | Most recent outreach, YYYY-MM-DD. **Blank = never contacted.** _Corrected: we had said "no contact on record"._ Kept as the source value; the app uses the later of this and the newest note (D22). | no |
+| students | `risk_flag` | Low / Medium / High, as set by the advising office | yes |
 | notes | `note_id` | Unique note ID, `N` + digits in this data | yes |
 | notes | `student_id` | The student the note is about | yes |
 | notes | `contact_date` | Date of the contact | yes |
-| notes | `contact_type` | Phone / Email / In person / Zoom | yes |
+| notes | `contact_type` | Email / Phone / Zoom / In person | yes |
 | notes | `advisor` | The advisor who made the contact | yes |
 | notes | `note_text` | Free-text note | yes |
 

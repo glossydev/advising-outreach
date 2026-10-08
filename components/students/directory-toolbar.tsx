@@ -18,7 +18,7 @@ const LAST_CONTACT_OPTIONS: { value: LastContactFilter; label: string }[] = [
   { value: "30", label: "30+ days" },
   { value: "60", label: "60+ days" },
   { value: "90", label: "90+ days" },
-  { value: "none", label: "No contact on record" },
+  { value: "none", label: "Never contacted" },
 ]
 
 export function DirectoryToolbar({

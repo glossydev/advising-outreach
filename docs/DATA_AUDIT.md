@@ -6,11 +6,12 @@ This report says what is in the data. The decisions were made afterwards, with A
 
 Personal data in this report: SSN-like and phone-like numbers are masked, and notes with sensitive content are described by matched keyword, not quoted.
 
+**Source history:** README.txt arrived empty (0 bytes) with the original files. Until 2026-10-08 the CSV headers were the only spec, and the first version of this report listed that as its first finding. The hiring team then sent the full README, now in `data/source/README.txt`, and this report checks the data against it. It confirmed the meanings already inferred, with two corrections recorded in DECISIONS.md: a blank `last_contact_date` means never contacted (D24), and class years are Freshman–Senior only (D9).
+
 ## Summary
 
 | # | Finding | Count | Decision |
 | --- | --- | --- | --- |
-| 1.1 | [README.txt has no column descriptions](#11-readmetxt-has-no-column-descriptions) | 17 of 17 columns undescribed | no rule |
 | 2.1 | [Possibly the same student under two IDs (similar names)](#21-possibly-the-same-student-under-two-ids-similar-names) | 1 pair | D15 `possible_duplicate_student` |
 | 2.2 | [last_contact_date: mixed date formats](#22-last_contact_date-mixed-date-formats) | 9 students not in YYYY-MM-DD | D4 `date_not_iso` |
 | 2.3 | [last_contact_date: placeholder text instead of a date](#23-last_contact_date-placeholder-text-instead-of-a-date) | 1 student | D5 `date_placeholder` |
@@ -26,7 +27,7 @@ Personal data in this report: SSN-like and phone-like numbers are masked, and no
 | 5.4 | [Notes left waiting on something (no reply, pending, awaiting)](#54-notes-left-waiting-on-something-no-reply-pending-awaiting) | 5 notes | D25 `waiting_on_student` |
 | 5.5 | [Deadlines and follow-up dates written into note text](#55-deadlines-and-follow-up-dates-written-into-note-text) | 6 notes | D20 `follow_up_date_in_text` |
 
-Also checked and found nothing: 58 checks, listed in [Appendix B](#appendix-b-checks-that-found-nothing).
+Also checked and found nothing: 59 checks, listed in [Appendix B](#appendix-b-checks-that-found-nothing).
 
 ## 1. Files and columns
 
@@ -37,11 +38,11 @@ Also checked and found nothing: 58 checks, listed in [Appendix B](#appendix-b-ch
 | students.csv | 5121 | 50 | 11 | CRLF | no | `c9a181e31779ab69eac98e7182c8fa2c85a2ee8328c0c57a7cd0c6fee1608669` |
 | contact_notes.csv | 6228 | 57 | 6 | CRLF | no | `6cfea8fcd3b0766c65910721fa6775b62304f02aefb9b772fad8edca3992eed0` |
 
-README.txt: 0 bytes, SHA-256 `e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855`.
+README.txt: 1269 bytes, SHA-256 `72215e0087bd74f8ca244efd672640c8e5c525c2e5155038c6d1bec4d912522a`.
 
 ### Column profiles
 
-With no README, this is the only description of the columns: what each one holds, as found.
+What each column actually holds, as found, to compare with the README's descriptions.
 
 | file | column | filled | distinct | looks_like | values |
 | --- | --- | --- | --- | --- | --- |
@@ -64,21 +65,6 @@ With no README, this is the only description of the columns: what each one holds
 | contact_notes.csv | note_text | 57/57 | 57 | text | 28–270 characters |
 
 GPA ranges from 1.98 to 3.92.
-
-### 1.1 README.txt has no column descriptions
-
-**Count:** 17 of 17 columns undescribed
-
-README.txt is 0 bytes. The brief says it holds the column descriptions, so the meaning of every column has to be inferred from its header and its values (see the column profiles above). Columns the README might describe but the CSVs lack can't be checked either.
-
-**Affected:** students.csv: student_id, students.csv: first_name, students.csv: last_name, students.csv: email, students.csv: major, students.csv: class_year, students.csv: credits_earned, students.csv: gpa, students.csv: advisor, students.csv: last_contact_date, students.csv: risk_flag, contact_notes.csv: note_id, contact_notes.csv: student_id, contact_notes.csv: contact_date, contact_notes.csv: contact_type, contact_notes.csv: advisor, contact_notes.csv: note_text
-
-**Options:**
-
-- Treat the CSV headers as the spec and write down the assumed meaning of each column in DECISIONS.md.
-- Pause until the hiring team replies (Adam has asked), and adjust if a README arrives.
-
-**Decision:** no rule. The CSV headers are the spec; assumed column meanings are in [IMPORT_DESIGN.md](IMPORT_DESIGN.md#assumed-column-meanings).
 
 ## 2. students.csv
 
@@ -467,6 +453,7 @@ contact_notes.csv has no follow-up date column (the v0 app expects one). These n
 
 **Files and columns**
 
+- Columns the README doesn't describe: every column in both files is described in README.txt
 - students.csv: rows with the wrong number of columns: every row has 11 columns
 - students.csv: blank lines: none
 - students.csv: non-ASCII characters: none
@@ -482,7 +469,7 @@ contact_notes.csv has no follow-up date column (the v0 app expects one). These n
 - Duplicate student_id: none
 - Same name under different student_ids: none
 - Same category value spelled differently (case or spacing): class_year, risk_flag, advisor, major are each spelled one way
-- class_year outside Freshman / Sophomore / Junior / Senior / Graduate: all recognized
+- class_year outside Freshman / Sophomore / Junior / Senior: all recognized
 - risk_flag outside Low / Medium / High: all recognized (case-insensitive)
 - student_id blank: none
 - first_name blank: none

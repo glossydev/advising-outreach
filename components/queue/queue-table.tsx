@@ -34,7 +34,7 @@ export function QueueTable({ students, selectedAdvisor }: { students: Student[];
       <div className="overflow-x-auto">
         <table className="w-full min-w-[840px] border-collapse text-sm">
           <caption className="sr-only">
-            Students ranked for outreach: no contact on record first, then by outreach score, highest first
+            Students ranked for outreach: never contacted first, then by outreach score, highest first
           </caption>
           <thead className="bg-cloud text-left text-[13px] text-navy">
             <tr>

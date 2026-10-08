@@ -107,7 +107,7 @@ export function OutreachPriorityCard({ student }: { student: Student }) {
       )}
       <p className="text-[13px] leading-relaxed text-muted-foreground">
         Points for time since contact, the risk flag, GPA, credits, follow-ups and unanswered outreach, capped at 100.
-        {student.no_contact_on_record && " Students with no contact on record are listed first in the queue."} Not a prediction.
+        {student.no_contact_on_record && " Students who have never been contacted are listed first in the queue."} Not a prediction.
       </p>
     </DetailCard>
   )
@@ -150,7 +150,7 @@ export function BeforeYouReachOutCard({ student, notes }: { student: Student; no
   if (student.no_contact_on_record) {
     items.push(
       <Item key="none" icon={UserRoundX} tone="warn">
-        No contact on record. This would be the first outreach the office has logged.
+        Never contacted. This would be the first outreach.
       </Item>,
     )
   }

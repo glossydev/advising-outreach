@@ -1,7 +1,7 @@
 /*
- * What each import kind expects. The README that should have described the columns arrived empty,
- * so these meanings are inferred from the headers and values (docs/IMPORT_DESIGN.md, "Assumed
- * column meanings"). Aliases drive automatic column matching (DECISIONS P2).
+ * What each import kind expects, as described by the dataset's README (data/source/README.txt;
+ * it first arrived empty and the hiring team sent the full file on 2026-10-08). Aliases drive
+ * automatic column matching (DECISIONS P2).
  */
 
 export type ImportKind = "students" | "notes"
@@ -25,7 +25,7 @@ export interface FieldSpec {
 }
 
 // Allowed values follow the dataset's own spelling (DECISIONS G1).
-export const CLASS_YEARS = ["Freshman", "Sophomore", "Junior", "Senior", "Graduate"] as const
+export const CLASS_YEARS = ["Freshman", "Sophomore", "Junior", "Senior"] as const
 export const RISK_FLAGS = ["Low", "Medium", "High"] as const
 export const CONTACT_TYPES = ["Phone", "Email", "In person", "Zoom"] as const
 
@@ -86,7 +86,7 @@ export const STUDENT_FIELDS: readonly FieldSpec[] = [
     label: "Major",
     type: "text",
     required: true,
-    description: "Declared major (\"Undeclared\" is a valid value)",
+    description: "Major; \"Undeclared\" and \"Pre-Nursing\" are valid values",
     aliases: ["program", "plan", "academic plan", "major name", "degree program"],
   },
   {
@@ -95,7 +95,7 @@ export const STUDENT_FIELDS: readonly FieldSpec[] = [
     type: "choice",
     required: true,
     choices: CLASS_YEARS,
-    description: "Class standing",
+    description: "Freshman / Sophomore / Junior / Senior",
     aliases: ["class", "year", "class standing", "standing", "academic level"],
   },
   {
@@ -103,7 +103,7 @@ export const STUDENT_FIELDS: readonly FieldSpec[] = [
     label: "Credits earned",
     type: "integer",
     required: true,
-    description: "Completed units, which is what UA class standing is based on",
+    description: "Total credits completed (what UA class standing is based on)",
     aliases: ["credits", "units", "units earned", "credit hours", "total credits", "earned credits", "completed units"],
   },
   {
@@ -111,7 +111,7 @@ export const STUDENT_FIELDS: readonly FieldSpec[] = [
     label: "GPA",
     type: "decimal",
     required: false,
-    description: "Cumulative GPA, 0.0–4.0",
+    description: "Cumulative GPA (4.0 scale)",
     aliases: ["cumulative gpa", "cum gpa", "gpa cumulative", "grade point average"],
   },
   {
@@ -119,7 +119,7 @@ export const STUDENT_FIELDS: readonly FieldSpec[] = [
     label: "Advisor",
     type: "text",
     required: true,
-    description: "Assigned advisor",
+    description: "Assigned advisor (last name)",
     aliases: ["adviser", "advisor name", "assigned advisor"],
   },
   {
@@ -127,7 +127,7 @@ export const STUDENT_FIELDS: readonly FieldSpec[] = [
     label: "Last contact date",
     type: "date",
     required: false,
-    description: "Last contact according to the spreadsheet (kept as the source value)",
+    description: "Most recent outreach (YYYY-MM-DD); blank means never contacted",
     aliases: ["last contact", "last contacted", "date last contacted", "last contact on"],
   },
   {
@@ -136,7 +136,7 @@ export const STUDENT_FIELDS: readonly FieldSpec[] = [
     type: "choice",
     required: true,
     choices: RISK_FLAGS,
-    description: "Low / Medium / High; who sets it is unknown",
+    description: "Low / Medium / High, as set by the advising office",
     aliases: ["risk", "risk level", "at risk", "risk rating"],
   },
 ]

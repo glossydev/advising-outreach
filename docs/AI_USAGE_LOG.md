@@ -218,3 +218,29 @@ Tools in play:
   - defaults to the student's preferred channel;
   - warns rather than blocks on a channel conflict or sensitive wording;
   - blocks future dates and SSNs.
+
+## 2026-10-08 — Adam's report: local dev server stuck recompiling
+
+**What Adam saw:** the local app (not GDS) looping. The dev log confirmed it: about 800 cycles of `GET /` → `Compiled in 1ms` → `GET /`.
+
+**What Claude tried, and what it ruled out**
+1. **SQLite's files changing on every read and tripping the file watcher.** Plausible, since `app.db-shm` was the most recently modified file. A test with no browser attached showed no recompiles. Claude then realized that test proved nothing, because Turbopack only recompiles when a browser is connected. Re-tested with a tab connected: still no recompiles. **Ruled out.**
+2. **A production build into the same `.next` folder just before starting the dev server**, which was Claude's exact sequence. Repeated with a tab open: one reload on restart, then quiet. **Ruled out.**
+3. **Two dev servers on one folder.** Only one was running. **Ruled out.**
+4. **The app's own code refreshing in a loop.** The only `router.refresh()` runs after saving a note, and the advisor server action only runs on a change. A note saved with a tab connected caused no loop. **Ruled out.**
+
+**Result:** not reproducible on a fresh server (Adam hasn't reported it since). The leading remaining explanation is a browser tab left in a bad state after Claude stopped and restarted the server three times while it was open. That's unconfirmed, and Adam was asked for details if it recurs rather than given a guess as a fix.
+
+## 2026-10-08 — The real README arrives
+
+Adam asked the hiring team about the empty README.txt, and they sent the full file. Claude compared it with every assumption made so far (IMPORT_DESIGN.md "Column meanings").
+
+**It confirmed** the inferred meanings: column names and types, the four contact types, "Undeclared" and "Pre-Nursing" as valid majors, credits as total completed, the YYYY-MM-DD format. It also states that all the data is synthetic, emails included (on the reserved `example.edu` domain), which settles the earlier question about committing it to a public repo.
+
+**It corrected two things, both from AI output:**
+- **"Blank = never contacted."** Claude had proposed "No contact on record" (D24) on the grounds that a spreadsheet can't prove a negative, and Adam had accepted it. The data owner's definition wins (G1). The label is now "Never contacted" everywhere; ranking is unchanged.
+- **Class years are Freshman–Senior.** v0 had added "Graduate", and the import had kept it. Removed.
+
+**Also:** "risk flag as set by the advising office" answers the audit's open question about where the flag comes from.
+
+**What changed in the repo:** the README is saved in `data/source/`, with the empty original kept in git history. The field descriptions on the column-matching screen now use the README's wording. The audit report was regenerated with a note recording the README's history.
