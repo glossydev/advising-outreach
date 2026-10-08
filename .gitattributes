@@ -1,0 +1,3 @@
+# Keep the hiring team's source files byte-for-byte (they use CRLF line endings,
+# and the SHA-256 hashes recorded in docs/ must stay valid on every checkout).
+data/source/** -text

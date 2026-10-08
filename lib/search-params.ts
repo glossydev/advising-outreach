@@ -1,0 +1,68 @@
+import type {
+  ClassYear,
+  LastContactFilter,
+  OutreachQueueFilters,
+  RiskFlag,
+  SortDirection,
+  StudentFilters,
+  StudentSortKey,
+} from "./types"
+
+export type SearchParams = Record<string, string | string[] | undefined>
+
+export const RISK_FLAGS: RiskFlag[] = ["high", "medium", "low", "unknown"]
+export const CLASS_YEARS: ClassYear[] = ["Freshman", "Sophomore", "Junior", "Senior", "Graduate"]
+export const MIN_DAY_OPTIONS = [14, 30, 60, 90] as const
+const LAST_CONTACT: LastContactFilter[] = ["any", "30", "60", "90", "never"]
+const SORT_KEYS: StudentSortKey[] = [
+  "student_id",
+  "name",
+  "major",
+  "class_year",
+  "credits",
+  "gpa",
+  "advisor",
+  "last_contact",
+  "risk",
+]
+
+function first(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] : value
+}
+
+/** Comma-separated list param, filtered to allowed values. */
+function list<T extends string>(value: string | string[] | undefined, allowed: readonly T[]): T[] {
+  const raw = first(value)
+  if (!raw) return []
+  return raw.split(",").filter((v): v is T => (allowed as readonly string[]).includes(v))
+}
+
+export function parseQueueParams(params: SearchParams): Omit<OutreachQueueFilters, "advisor"> {
+  const minDays = Number(first(params.min_days))
+  return {
+    risks: list(params.risk, RISK_FLAGS),
+    class_years: list(params.year, CLASS_YEARS),
+    min_days: (MIN_DAY_OPTIONS as readonly number[]).includes(minDays) ? minDays : undefined,
+  }
+}
+
+export function parseDirectoryParams(params: SearchParams): Omit<StudentFilters, "advisor"> & {
+  advisor_param?: string
+  page: number
+} {
+  const lastContact = first(params.last_contact) as LastContactFilter | undefined
+  const sort = first(params.sort) as StudentSortKey | undefined
+  const dir = first(params.dir) as SortDirection | undefined
+  const page = Math.max(1, Math.floor(Number(first(params.page)) || 1))
+  return {
+    q: first(params.q)?.slice(0, 100) ?? "",
+    major: first(params.major) || undefined,
+    class_years: list(params.year, CLASS_YEARS),
+    risks: list(params.risk, RISK_FLAGS),
+    last_contact: lastContact && LAST_CONTACT.includes(lastContact) ? lastContact : "any",
+    sort: sort && SORT_KEYS.includes(sort) ? sort : "name",
+    dir: dir === "desc" ? "desc" : "asc",
+    advisor_param: first(params.advisor) || undefined,
+    page,
+  }
+}

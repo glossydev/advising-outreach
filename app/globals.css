@@ -1,0 +1,142 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+@import 'shadcn/tailwind.css';
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: var(--font-inter), 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains), ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --color-navy: var(--navy);
+  --color-signal: var(--signal);
+  --color-signal-foreground: var(--signal-foreground);
+  --color-azurite: var(--azurite);
+  --color-arroyo: var(--arroyo);
+  --color-rain: var(--rain);
+  --color-brick: var(--brick);
+  --color-saguaro: var(--saguaro);
+  --color-saguaro-strong: var(--saguaro-strong);
+  --color-shade: var(--shade);
+  --color-caliche: var(--caliche);
+  --color-cloud: var(--cloud);
+  --color-amber: var(--amber);
+
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  color-scheme: light;
+
+  /* Brand palette */
+  --navy: #0c234b;
+  --signal: #ab0520;
+  --signal-foreground: #ffffff;
+  --azurite: #1e5288;
+  --arroyo: #106ab1;
+  --rain: #81ceeb;
+  --brick: #85372b;
+  --saguaro: #7f8b5a;
+  /* Darkened Saguaro for text on white; the brand value is below 4.5:1. */
+  --saguaro-strong: #56603a;
+  --shade: #3f7a7a;
+  --caliche: #f2efea;
+  --cloud: #e5eff7;
+  --amber: #b45309;
+
+  --background: var(--caliche);
+  --foreground: #03132e;
+  --card: #ffffff;
+  --card-foreground: #03132e;
+  --popover: #ffffff;
+  --popover-foreground: #03132e;
+  --primary: var(--navy);
+  --primary-foreground: #ffffff;
+  --secondary: var(--cloud);
+  --secondary-foreground: var(--navy);
+  --muted: #f7f5f1;
+  --muted-foreground: #57534b;
+  --accent: var(--cloud);
+  --accent-foreground: var(--navy);
+  --destructive: var(--signal);
+  --border: #d9d3c8;
+  --input: #cbc4b7;
+  --ring: var(--arroyo);
+  --chart-1: var(--azurite);
+  --chart-2: var(--shade);
+  --chart-3: var(--saguaro);
+  --chart-4: var(--brick);
+  --chart-5: var(--signal);
+  --radius: 0.375rem;
+  --sidebar: var(--navy);
+  --sidebar-foreground: #ffffff;
+  --sidebar-primary: var(--azurite);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: var(--azurite);
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: rgb(255 255 255 / 0.12);
+  --sidebar-ring: var(--rain);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    font-size: 16px;
+  }
+  body {
+    @apply bg-background text-foreground font-sans text-sm;
+    font-feature-settings: 'cv11', 'ss01';
+  }
+}
+
+/*
+ * Unlayered on purpose so it beats component utilities like outline-none:
+ * every interactive element keeps a visible 2px Arroyo Blue focus ring.
+ */
+:focus-visible {
+  outline: 2px solid var(--arroyo);
+  outline-offset: 2px;
+}
+
+.on-navy :focus-visible {
+  outline-color: var(--rain);
+}
