@@ -1,6 +1,6 @@
 # Import design
 
-**Status:** draft for Adam's review (2026-10-08). Nothing here is built yet.
+**Status:** agreed 2026-10-08 (decisions G2, P1, P2, T4, T5 in [DECISIONS.md](DECISIONS.md)). Not built yet.
 
 ## Why the import works this way
 
@@ -15,11 +15,23 @@ So the import itself does the work, every time:
 
 ## The flow
 
+**Before step 1: how import treats existing data (P1).** The top of the import page says, in plain words: importing **adds new records and updates existing ones; it never deletes anything**. Students are matched by ID. Notes already imported are skipped. For a completely clean import, use **Reset database** in the prototype tools box first, or run `pnpm db:reset` locally.
+
 **Step 1: What are you importing?** Students or Contact notes. Notes are checked against the students already in the database, so students come first. The notes option says so if none exist yet.
 
 **Step 2: Choose the file.** Upload a CSV, or use the prototype panel below.
 
-**Step 3: Match columns.** Headers are matched automatically by name and by known alternatives (`credits` ↔ `credits_earned`, `method` ↔ `contact_type`, `notes` ↔ `note_text`). The user confirms the matches or changes them. A required field with no matching column has to be mapped before continuing. Extra columns are listed and ignored.
+**Step 3: Check the column matches (P2).** Meant to take a few seconds.
+- Every expected field is matched automatically, in this order:
+  1. exact header (`credits_earned` = `credits_earned`);
+  2. same name with different formatting (`Credits Earned`);
+  3. a known alternative (`credits`, `units_earned` → `credits_earned`; `method` → `contact_type`; `notes`, `body` → `note_text`);
+  4. the closest remaining header by name.
+- The screen is one compact list: expected field, the CSV column it was matched to, and two sample values from the file so a wrong match is obvious.
+- **Exact matches are plain.** Everything else is highlighted, with the reason ("matched by alternative name", "best guess"), sorted to the top. The eye goes straight to the few lines that need a look.
+- A required field with no match is red and needs a column picked from a dropdown before continuing.
+- CSV columns that weren't used are listed underneath as "will be ignored".
+- If every field matched exactly, the screen says so and shows a single **Continue**.
 
 **Step 4: Review and fix.** A preview grid of every row.
 - A summary bar shows rows ready, rows with blocking issues, rows with warnings, and excluded rows.
@@ -67,7 +79,7 @@ The panel is controlled by an environment variable (`ENABLE_PROTOTYPE_TOOLS`, on
 | Rules | `lib/import/rules/` | One file per rule: a check that returns issues, and an optional suggested fix. Plain functions, no database access, unit-tested with tiny inline CSVs. |
 | Scan | `lib/import/scan.ts` | Parses the CSV, matches columns, runs the rules against the rows plus a snapshot of what's already in the database (existing IDs, names). |
 | API | `app/api/import/*` | `POST /scan` (an uploaded file or a sample name) returns rows, column matches and issues. `POST /commit` re-validates, then writes the rows, the import record and every fix in one transaction. Prototype routes: `POST /sample-reset`. |
-| Storage | Postgres | `imports` (who, when, kind, file name and SHA-256, row counts) and `import_fixes` (rule, row, column, original value, final value, accepted by). For the SSN rule the original value is stored masked. |
+| Storage | SQLite file by default, Postgres via `DATABASE_URL` (T2) | `imports` (who, when, kind, file name and SHA-256, row counts) and `import_fixes` (rule, row, column, original value, final value, accepted by). For the SSN rule the original value is stored masked. |
 | UI | `/import` (new) and `/data-quality` | The step-by-step import, then the history and fixes report. v0's replace-everything upload card is retired; its severity badges and per-rule issue list are reused for the report. |
 
 ## Assumed column meanings
@@ -93,8 +105,8 @@ The README that should describe the columns arrived empty, so these meanings are
 | notes | `advisor` | The advisor who made the contact | yes |
 | notes | `note_text` | Free-text note | yes |
 
-## Open questions for Adam
+## Resolved questions
 
-1. **What happens to data already in the database?** _(Recommendation: add and update.)_
-2. **Column matching step, or require exact headers?** _(Recommendation: matching step.)_
-3. **Does the app start seeded or empty?** _(Recommendation: seeded.)_
+1. **What happens to data already in the database?** Add and update, never delete; the page explains this and how to reset (P1).
+2. **Column matching step, or require exact headers?** Automatic matching with a brief, highlighted review (P2).
+3. **Does the app start seeded or empty?** Seeded with the sample data (P3).

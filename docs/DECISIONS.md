@@ -3,6 +3,7 @@
 Two kinds of entries:
 
 - **Data decisions (D1, D2, …)** say how the tool handles a kind of data problem. Each one is exactly one named rule in code, and the rule name appears in the entry. Import rules live in `lib/import/rules/`; scoring rules live in `lib/scoring.ts`.
+- **Product decisions (P1, P2, …)** say how the app behaves for the people using it.
 - **Technical decisions (T1, T2, …)** record tooling and architecture choices and why they were made.
 
 ## Guiding rules
@@ -13,7 +14,7 @@ Two kinds of entries:
 
 ## Data decisions
 
-> **Draft (2026-10-08): proposed by Claude, pending Adam's review.**
+> **Status:** proposed by Claude on 2026-10-08. Adam answered the open questions the same day (D3, P1–P3) and asked for no rule changes. Individual rules may still be adjusted while the importer is built; any change gets noted here.
 > "Blocking" means the row can't be imported until it's resolved. "Fires on sample" is how many times the rule triggers on the hiring team's files, from [DATA_AUDIT.md](DATA_AUDIT.md).
 
 ### Checks on any file
@@ -22,7 +23,7 @@ Two kinds of entries:
 
 **D2 · `duplicate_id_in_file` · blocking.** The same `student_id` or `note_id` appears on more than one row. If the rows are identical, the suggestion is to exclude the extra copies; otherwise the user picks which row to keep. _Fires on sample: 0._
 
-**D3 · `id_already_imported` · depends on open question 1.** The ID already exists in the database.
+**D3 · `id_already_imported` · warning or info.** The ID already exists in the database. Imports add and update, never delete (P1).
 - A student with changed fields is a warning: "will update this record", showing which fields change.
 - A note identical to the stored one is info: "already imported, will be skipped".
 - A note with the same ID but different content is blocking.
@@ -125,13 +126,35 @@ _Fires on sample: 0. All 47 students with both agree once dates are normalized (
 | 3.2 Short notes | No action. "Left voicemail. No response." is a complete note. |
 | 3.3 Near-identical notes | No rule. N026/N036 is evidence for D15. N044/N048 is a false positive, left visible in the audit. |
 
+## Product decisions
+
+**P1: Imports add and update; they never delete.** Students already in the database are matched by `student_id`: changed fields are updated (and shown before commit), and new students are added. New notes are added, and notes already imported are skipped. The import page explains this before the user picks a file, and says how to start clean: the **Reset database** button in the prototype tools box (or `pnpm db:reset` locally). _(Adam, 2026-10-08.)_
+
+**P2: Column matching is automatic, with a brief review.** Headers are matched by exact name, then by known alternatives, then by closest name. The review screen lists every match on one screen and highlights anything that isn't an exact header match, so problems stand out without reading every row. If everything matches exactly, it's a single "Continue". A required field with no match is shown in red and must be assigned. _(Adam, 2026-10-08.)_
+
+**P3: The app starts with the sample data already imported.** First load lands on a working outreach queue. The data comes from the seed script, which runs the same import rules (T5). _(Adam, 2026-10-08.)_
+
+**P4: First visit opens a welcome dialog.**
+- It explains what the app is, gives a short tour of the features and how to use them, and uses the University of Arizona "A" mark in its branding.
+- A "Don't show this again" checkbox is remembered in that browser (there are no user accounts to store it against).
+- The dialog can be reopened from the help menu. _(Adam, 2026-10-08.)_
+
 ## Technical decisions
 
 **T1: Package manager is pnpm 12.3.4.** v0 shipped a pnpm lockfile and pinned `pnpm@12.3.4` in `packageManager`; corepack honors the pin, so every machine gets the same version. pnpm 12 also checks the lockfile against supply-chain policies and blocks dependency install scripts until approved. Only `esbuild` (needed by `tsx`) is approved, in `pnpm-workspace.yaml`.
 
-**T2: Storage is Postgres via Drizzle ORM, replacing the plan's SQLite.** The finished app will be hosted on GDS, which provides Postgres. Using Postgres everywhere means one SQL dialect and one schema from laptop to production. Local development and tests run Postgres in Docker, so nothing touches the hosted database. Trade-off: running locally needs Docker, where SQLite would have needed nothing; the hosted version covers anyone who doesn't want to install it.
+**T2: Storage is a SQLite file by default, or Postgres when `DATABASE_URL` points to one; queries go through Kysely.** _(Revised 2026-10-08. The first version chose Postgres + Drizzle everywhere.)_
+- **Fresh clone:** needs no database server and no secrets. With `DATABASE_URL` unset, the app uses `data/app.db` (gitignored), created and filled by `pnpm seed`.
+- **On GDS:** `DATABASE_URL` is a `postgres://` address supplied by the environment, and the same code runs against Postgres. No connection details are ever committed.
+- **Why Kysely over Drizzle:** Kysely runs the same queries and migrations against both databases; Drizzle needs a separate schema per database.
+- **Portability rules:** only SQL both databases share. Dates and JSON are stored as text, true/false as 0/1, IDs as text.
+- **Testing:** unit tests run against SQLite. The Postgres path is checked against Postgres in Docker before deploying.
 
 **T3: One class-name helper.** `components/ui/alert-dialog.tsx` imports `cn` from the `cn` npm package (a real shadcn-ui package), while every other component uses `@/lib/utils`. Standardize on `@/lib/utils` and drop the extra dependency. _(Applied in Phase 2.)_
+
+**T6: ESLint 9, not 10.** Next 16.4's lint config depends on plugins (`eslint-plugin-react`, `-import`, `-jsx-a11y`) that don't support ESLint 10 yet. ESLint 9 is past its support window, but it only runs on developer machines and never ships with the app. Revisit when the plugins catch up.
+
+**T7: The reference date is `NEXT_PUBLIC_REFERENCE_DATE`, defaulting to 2026-10-05.** The plan called it `REFERENCE_DATE`, but client components (the log-contact form's default date) import `lib/config.ts` too. A server-only variable would let the browser and server disagree about "today". An invalid value falls back to the default with a warning.
 
 **T4: Import rules are plain functions shared by browser and server.** The browser re-checks a row the moment it's edited, so highlighting updates instantly. The server re-runs the same functions on commit and refuses anything still blocking, so the browser never has the final say.
 
