@@ -1,4 +1,3 @@
-import { Analytics } from '@vercel/analytics/next'
 import type { Metadata, Viewport } from 'next'
 import { Inter, JetBrains_Mono } from 'next/font/google'
 import { Toaster } from '@/components/ui/sonner'
@@ -56,7 +55,6 @@ export default async function RootLayout({
           </div>
         </TooltipProvider>
         <Toaster theme="light" position="bottom-right" />
-        {process.env.NODE_ENV === 'production' && <Analytics />}
       </body>
     </html>
   )

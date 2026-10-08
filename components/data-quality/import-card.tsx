@@ -1,6 +1,6 @@
 "use client"
 
-import { useActionState, useEffect, useRef, useState } from "react"
+import { useActionState, useRef, useState } from "react"
 import { FileSpreadsheet, Loader2, Upload, X } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
@@ -19,20 +19,20 @@ function slotFor(file: File): Slot | null {
 }
 
 export function ImportCard({ summaryLine }: { summaryLine: string }) {
-  const [state, formAction, pending] = useActionState<ImportActionState, FormData>(runImportAction, { status: "idle" })
   const [files, setFiles] = useState<Partial<Record<Slot, File>>>({})
   const [dragging, setDragging] = useState(false)
   const studentsInput = useRef<HTMLInputElement>(null)
   const notesInput = useRef<HTMLInputElement>(null)
   const formRef = useRef<HTMLFormElement>(null)
-
-  useEffect(() => {
-    if (state.status === "success") {
-      toast.success(state.message)
+  const [state, formAction, pending] = useActionState<ImportActionState, FormData>(async (prev, formData) => {
+    const result = await runImportAction(prev, formData)
+    if (result.status === "success") {
+      toast.success(result.message)
       setFiles({})
       formRef.current?.reset()
     }
-  }, [state])
+    return result
+  }, { status: "idle" })
 
   function assign(slot: Slot, file: File | undefined) {
     const input = slot === "students" ? studentsInput.current : notesInput.current

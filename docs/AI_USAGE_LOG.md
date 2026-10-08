@@ -90,3 +90,31 @@ Tools in play:
 **Claude changed one of its own Phase 1 recommendations:** last contact is now *the later of* the newest note and the spreadsheet date, not always the newest note. A newer spreadsheet date means a contact nobody wrote up; ignoring it would push an already-contacted student back to the top of the queue.
 
 **Flagged for Adam:** the importer is now the biggest feature in the app and sits in "extended" scope, not "required". The build order puts the required features first.
+
+## 2026-10-08 — Adam's answers, and Phase 2: get the v0 app running
+
+**Decided by Adam** (recorded as P1–P4 and a revised T2 in DECISIONS.md):
+- Imports add and update, never delete. The page must explain this and say how to reset for a clean import.
+- Column matching should be as close to automatic as possible: a brief review that highlights only the non-exact matches.
+- The app starts with the data already imported, and a first-visit welcome dialog explains the app, with UA branding and a "don't show again" option.
+- **Storage requirement changed:** a fresh clone must work with nothing configured, and no connection details may go in the repo. So SQLite is the default and Postgres is used when `DATABASE_URL` points to one. Claude then swapped the planned Drizzle for Kysely, because Kysely runs the same queries against both databases.
+
+**What Claude Code did**
+- Created the private GitHub repo. The first commit is the v0 export **as generated**, so the history shows exactly what was changed afterwards.
+  - The original zip was no longer on disk. `package.json` and `pnpm-workspace.yaml` were restored from their pre-edit contents; the lockfile, already rewritten by pnpm, went into the second commit. The commit message says so.
+  - Added a `.gitattributes` rule after noticing git's line-ending setting would have rewritten the source CSVs on commit, invalidating their recorded hashes.
+- Kept the hiring team's brief (`instructions.txt`) out of the repo, which will become public.
+- Fixed what was broken in the v0 export:
+  - `next.config.mjs` had `ignoreBuildErrors: true`. Removed; the build and `tsc` both pass with 0 type errors.
+  - The `cn` import in `alert-dialog.tsx` now uses `@/lib/utils`, and the extra package is gone.
+  - Removed `@vercel/analytics` (Vercel-only; the app is hosted on GDS).
+  - Set up ESLint (the export had none). It found one real issue, a state update inside an effect in the upload card, which is fixed.
+- Made the reference date configurable (`NEXT_PUBLIC_REFERENCE_DATE`) and wrote `.env.example` (no secrets) and `CLAUDE.md`.
+- Opened all four pages in Chrome on v0's mock data: all render with no console errors.
+
+**What Claude got wrong this phase**
+- In Phase 0 Claude called the `shadcn` package an unneeded command-line tool. It's actually imported by `globals.css` for styles, so it stays.
+- Claude first installed ESLint 10, the latest. Next's lint plugins only support up to 9, so it's pinned to 9 (T6).
+- Claude tried to find a student's detail-page link by scraping HTML; rows navigate on click, not via links. Switched to checking the pages in a real browser.
+
+**Noticed for later (Phase 5 UI work):** at a ~1230px-wide window the outreach-queue table is wider than the page, and the "Log contact" column is cut off behind a horizontal scroll.
