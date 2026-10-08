@@ -11,7 +11,7 @@ A prototype internal tool for a university advising office: advisors see which s
 - Hosting: GDS deployment 23 (`arizona-prototype`), staging at https://wildcat-staging.glossydevserver.com. GDS runs `npm install` and `npm run build`; its `DATABASE_URL` points at Postgres on the GDS box (reachable only from there). GDS does **not** deploy on push: a build runs only when triggered (glossy-deploy MCP `trigger_build`, or the GDS web UI).
 
 Commands: `npm run dev` · `npm run build` · `npm run typecheck` · `npm run lint` · `npm test` · `npm run seed` (wipe + import the sample data) · `npm run db:reset` (empty; stays empty) · `npm run data:audit` (regenerates `docs/DATA_AUDIT.md`).
-The dev machine is Windows/PowerShell 5.1: no `&&` chaining.
+The dev machine is Windows/PowerShell 5.1: no `&&` chaining. Commit messages containing double quotes must go through a file (`git commit -F msg.txt`); PowerShell 5.1 splits quoted text when passing arguments to git.
 
 Tests on Postgres too: start a throwaway container and point `TEST_DATABASE_URL` at it (the sample-import suite then runs on both databases):
 `docker run -d --rm --name advising-test-pg -e POSTGRES_PASSWORD=localtest -e POSTGRES_DB=advising_test -p 55432:5432 postgres:16-alpine`, then `$env:TEST_DATABASE_URL="postgres://postgres:localtest@localhost:55432/advising_test"; npm test`.
