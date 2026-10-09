@@ -24,7 +24,7 @@ export function ReasonChips({ reasons, max = 3 }: { reasons: string[]; max?: num
       {shown.map((r) => (
         <li
           key={r}
-          className="rounded-md border border-border bg-card px-1.5 py-0.5 text-[12px] whitespace-nowrap text-foreground"
+          className="rounded-md border border-border bg-card px-1.5 py-0.5 text-[12px] text-foreground"
         >
           {r}
         </li>

@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useSyncExternalStore } from "react"
+import { useEffect, useRef, useState, useSyncExternalStore } from "react"
 import { CircleHelp, FileUp, GraduationCap, ListOrdered, ShieldCheck, UserRound, Users } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -59,6 +59,7 @@ export function WelcomeDialog({ logoSrc }: { logoSrc: string | null }) {
   const [closed, setClosed] = useState(false)
   const [reopened, setReopened] = useState(false)
   const [dontShow, setDontShow] = useState(false)
+  const popupRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     function reopen() {
@@ -80,7 +81,11 @@ export function WelcomeDialog({ logoSrc }: { logoSrc: string | null }) {
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && close()}>
-      <DialogContent className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-2xl">
+      {/*
+        Focus starts on the dialog itself. By default it would go to the first link, near the bottom, and on a short
+        phone the dialog would open scrolled past its title.
+      */}
+      <DialogContent ref={popupRef} initialFocus={popupRef} className="max-h-[calc(100dvh-2rem)] overflow-y-auto sm:max-w-2xl">
         <DialogHeader className="flex-row items-center gap-4">
           {logoSrc ? (
             // eslint-disable-next-line @next/next/no-img-element -- a small static SVG; next/image adds nothing here

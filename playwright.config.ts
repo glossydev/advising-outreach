@@ -25,8 +25,10 @@ export default defineConfig({
     trace: "retain-on-failure",
   },
   projects: [
+    // responsive.spec.ts runs in both: a few key widths here, every width in "responsive".
     { name: "e2e", testIgnore: /screenshots\.spec\.ts/ },
     { name: "docs", testMatch: /screenshots\.spec\.ts/ },
+    { name: "responsive", testMatch: /responsive\.spec\.ts/ },
   ],
   webServer: {
     command: `npx tsx scripts/seed.ts && npx next start -p ${PORT}`,

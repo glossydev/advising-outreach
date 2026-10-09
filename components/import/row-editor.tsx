@@ -53,7 +53,8 @@ function IssueCard({
               key={s.label}
               size="sm"
               variant={i === 0 ? "signal" : "outline"}
-              className={i === 0 ? undefined : "bg-card"}
+              // Labels such as "Import and link to S1021 as a possible duplicate" wrap instead of running out of the card.
+              className={cn("h-auto min-h-7 max-w-full py-1 text-left whitespace-normal", i > 0 && "bg-card")}
               onClick={() => onRowsChange(applySuggestion(rows, issue, s))}
             >
               {s.exclude ? <Ban aria-hidden="true" /> : <Check aria-hidden="true" />}
@@ -61,7 +62,12 @@ function IssueCard({
             </Button>
           ))}
           {issue.bulk && alike > 1 && (
-            <Button size="sm" variant="outline" className="bg-card" onClick={() => onRowsChange(applyToAllLike(rows, allIssues, issue))}>
+            <Button
+              size="sm"
+              variant="outline"
+              className="h-auto min-h-7 max-w-full bg-card py-1 text-left whitespace-normal"
+              onClick={() => onRowsChange(applyToAllLike(rows, allIssues, issue))}
+            >
               Apply to all {alike} like this
             </Button>
           )}
@@ -189,7 +195,7 @@ export function RowEditor({
 
   return (
     <Sheet open={row !== null} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full gap-0 overflow-y-auto shadow-xl sm:max-w-xl">
+      <SheetContent side="right" className="gap-0 overflow-y-auto shadow-xl data-[side=right]:w-full data-[side=right]:sm:max-w-xl">
         {row && (
           <>
             <SheetHeader className="border-b border-border">

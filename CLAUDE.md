@@ -15,6 +15,12 @@ Commands: `npm run dev` · `npm run build` · `npm run typecheck` · `npm run li
 Browser tests (first time: `npx playwright install chromium`). Both build first, then run against `next start` on port 3100 with their own database, `data/e2e.db`, so they never touch `data/app.db`. Stop `npm run dev` before running them: it shares `.next/`.
 - `npm run test:e2e`: the end-to-end specs and the axe checks (anything worse than "minor" fails) in `e2e/`.
 - `npm run docs:screenshots`: walks every screen and saves the help screenshots to `public/help/screens/`. It fails on any browser error along the way. Run it **before** `test:e2e`: `next start` only serves public files that existed at build time, and `e2e/help.spec.ts` checks every screenshot loads.
+- `npm run test:responsive`: every page and dialog at 15 widths from 320 to 1279px (`e2e/responsive.spec.ts`), failing on sideways scrolling, anything off the screen, or text spilling out of a control. Saves a screenshot of each to `test-results/responsive-screens/` for review. `test:e2e` runs the same checks at 320, 768 and 1024 only.
+
+Responsive layout rules (T11):
+- Page layouts switch on the content area's width, not the screen's: `<main>` is a container, so use `@min-[…]:` variants. The sidebar takes 240px from `md` up.
+- A box that scrolls sideways needs `relative`, or screen-reader-only text inside it escapes and widens the page on phones.
+- The sheet sets its width under `data-[side=right]:`, so overrides need the same prefix: `data-[side=right]:w-full`, not `w-full`.
 The dev machine is Windows/PowerShell 5.1: no `&&` chaining. Commit messages containing double quotes must go through a file (`git commit -F msg.txt`); PowerShell 5.1 splits quoted text when passing arguments to git.
 **Never rewrite source files with PowerShell** (`Get-Content`/`Set-Content`): 5.1 reads UTF-8 without a BOM as ANSI and writes one back, so "—" becomes "Ã¢â‚¬â€" (this happened to `queue-table.tsx` on 2026-10-08). Use the editor tools, or Node's `fs` for scripted edits.
 

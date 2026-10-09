@@ -10,6 +10,9 @@ import { MATCH_LABELS, Notice } from "./shared"
 
 const NOT_IMPORTED = "none"
 
+/** The four parts of a match, side by side once there's room. */
+const COLUMNS_GRID = "@min-[44rem]:grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(0,1fr)]"
+
 /** Non-exact matches first, so the eye lands on the few lines that need a look (P2). */
 const ORDER: Record<MatchKind, number> = { none: 0, guess: 1, alias: 2, formatting: 3, exact: 4 }
 
@@ -88,79 +91,92 @@ export function ColumnStep({
         </Notice>
       ) : null}
 
-      <div className="overflow-x-auto rounded-lg border border-border">
-        <table className="w-full min-w-[720px] border-collapse text-sm">
-          <caption className="sr-only">How the file&apos;s columns were matched to the fields the app needs</caption>
-          <thead className="bg-cloud text-left text-[13px] text-navy">
-            <tr>
-              <th scope="col" className="px-3 py-2 font-semibold">Field</th>
-              <th scope="col" className="px-3 py-2 font-semibold">Column in your file</th>
-              <th scope="col" className="px-3 py-2 font-semibold">How it was matched</th>
-              <th scope="col" className="px-3 py-2 font-semibold">Sample values</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((m) => {
-              const field = fields.find((f) => f.key === m.field)!
-              const flagged = m.kind !== "exact" && !(m.kind === "none" && !field.required)
-              const error = m.kind === "none" && field.required
-              const samples = m.column === null ? [] : preview.map((r) => r[m.column!] ?? "").filter(Boolean).slice(0, 2)
-              const selectId = `column-for-${m.field}`
-              return (
-                <tr
-                  key={m.field}
-                  className={cn("border-t border-border align-top", error ? "bg-signal/10" : flagged && "bg-caliche/60")}
-                >
-                  <td className="px-3 py-2">
-                    <label htmlFor={selectId} className="flex flex-col">
-                      <span className="font-medium text-navy">
-                        {field.label}
-                        {field.required && <span className="font-normal text-muted-foreground"> (required)</span>}
+      {/*
+        One list for every width: from 44rem of room the four parts of each match sit side by side under column
+        headings, like a table; narrower, they stack, each with its own label. The headings are visual only: screen
+        readers get the same labels at every width.
+      */}
+      <div className="@container rounded-lg border border-border">
+        <div
+          aria-hidden="true"
+          className={cn(
+            COLUMNS_GRID,
+            "hidden gap-x-4 rounded-t-lg border-b border-border bg-cloud px-3 py-2 text-[13px] font-semibold text-navy @min-[44rem]:grid",
+          )}
+        >
+          <span>Field</span>
+          <span>Column in your file</span>
+          <span>How it was matched</span>
+          <span>Sample values</span>
+        </div>
+        <ul aria-label="How the file's columns were matched to the fields the app needs">
+          {rows.map((m, index) => {
+            const field = fields.find((f) => f.key === m.field)!
+            const flagged = m.kind !== "exact" && !(m.kind === "none" && !field.required)
+            const error = m.kind === "none" && field.required
+            const samples = m.column === null ? [] : preview.map((r) => r[m.column!] ?? "").filter(Boolean).slice(0, 2)
+            const selectId = `column-for-${m.field}`
+            return (
+              <li
+                key={m.field}
+                className={cn(
+                  "grid gap-x-4 gap-y-2 px-3 py-2.5 @min-[44rem]:items-start",
+                  COLUMNS_GRID,
+                  index > 0 && "border-t border-border",
+                  index === rows.length - 1 && "rounded-b-lg",
+                  error ? "bg-signal/10" : flagged && "bg-caliche/60",
+                )}
+              >
+                <label htmlFor={selectId} className="flex flex-col">
+                  <span className="font-medium text-navy">
+                    {field.label}
+                    {field.required && <span className="font-normal text-muted-foreground"> (required)</span>}
+                  </span>
+                  <span className="text-[12px] text-muted-foreground">{field.description}</span>
+                </label>
+                <Select items={options} value={m.column === null ? NOT_IMPORTED : String(m.column)} onValueChange={(v) => v && choose(m.field, v)}>
+                  <SelectTrigger id={selectId} className="w-full min-w-0 bg-card" aria-invalid={error || undefined}>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {Object.entries(options).map(([value, label]) => (
+                      <SelectItem key={value} value={value}>
+                        {label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {/* Stacked, these two share a row when there's room; side by side, they're the last two columns. */}
+                <div className="grid gap-2 @min-[24rem]:grid-cols-2 @min-[44rem]:contents">
+                <p className="flex flex-col gap-0.5 text-[13px]">
+                  <span className="text-[12px] text-muted-foreground @min-[44rem]:sr-only">How it was matched</span>
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-1",
+                      error ? "font-medium text-signal" : flagged ? "font-medium text-brick" : "text-muted-foreground",
+                    )}
+                  >
+                    {flagged && <TriangleAlert className="size-3.5 shrink-0" aria-hidden="true" />}
+                    {m.kind === "none" && !field.required ? "Not in this file (optional)" : MATCH_LABELS[m.kind]}
+                  </span>
+                </p>
+                <div className="flex min-w-0 flex-col gap-0.5 text-[13px] text-muted-foreground">
+                  <span className="text-[12px] @min-[44rem]:sr-only">Sample values</span>
+                  {samples.length ? (
+                    samples.map((s, i) => (
+                      <span key={i} className="block truncate font-mono" title={s}>
+                        {s}
                       </span>
-                      <span className="text-[12px] text-muted-foreground">{field.description}</span>
-                    </label>
-                  </td>
-                  <td className="px-3 py-2">
-                    <Select
-                      items={options}
-                      value={m.column === null ? NOT_IMPORTED : String(m.column)}
-                      onValueChange={(v) => v && choose(m.field, v)}
-                    >
-                      <SelectTrigger
-                        id={selectId}
-                        className="w-full min-w-48 bg-card"
-                        aria-invalid={error || undefined}
-                      >
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {Object.entries(options).map(([value, label]) => (
-                          <SelectItem key={value} value={value}>
-                            {label}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </td>
-                  <td className="px-3 py-2">
-                    <span
-                      className={cn(
-                        "inline-flex items-center gap-1 text-[13px]",
-                        error ? "font-medium text-signal" : flagged ? "font-medium text-brick" : "text-muted-foreground",
-                      )}
-                    >
-                      {flagged && <TriangleAlert className="size-3.5" aria-hidden="true" />}
-                      {m.kind === "none" && !field.required ? "Not in this file (optional)" : MATCH_LABELS[m.kind]}
-                    </span>
-                  </td>
-                  <td className="max-w-64 px-3 py-2 text-[13px] text-muted-foreground">
-                    {samples.length ? samples.map((s, i) => <span key={i} className="block truncate font-mono">{s}</span>) : "—"}
-                  </td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+                    ))
+                  ) : (
+                    <span>—</span>
+                  )}
+                </div>
+                </div>
+              </li>
+            )
+          })}
+        </ul>
       </div>
 
       {unused.length > 0 && (

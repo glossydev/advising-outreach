@@ -54,7 +54,39 @@ export default async function DataQualityPage() {
             </Link>
           </p>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Narrow screens: one block per import instead of a seven-column table. */}
+          <ul aria-label="Imports, newest first" className="divide-y divide-border @min-[44rem]:hidden">
+            {report.imports.map((i) => (
+              <li key={i.import_id} className="flex flex-col gap-1.5 px-4 py-3">
+                <p className="flex flex-col">
+                  <span>
+                    <span className="font-mono text-[13px]">{i.source_name}</span>
+                    <span className="text-muted-foreground"> · {i.kind === "students" ? "Students" : "Contact notes"}</span>
+                  </span>
+                  <span className="text-[13px] text-muted-foreground">
+                    {timestamp.format(new Date(i.created_at))} · {SOURCE_LABELS[i.source_kind] ?? i.source_kind}
+                  </span>
+                </p>
+                <dl className="grid grid-cols-4 gap-2 text-[13px]">
+                  {(
+                    [
+                      ["Added", i.rows_added],
+                      ["Updated", i.rows_updated],
+                      ["Unchanged", i.rows_unchanged],
+                      ["Left out", i.rows_excluded],
+                    ] as const
+                  ).map(([label, n]) => (
+                    <div key={label} className="flex flex-col">
+                      <dt className="text-[12px] text-muted-foreground">{label}</dt>
+                      <dd className="tabular-nums">{n}</dd>
+                    </div>
+                  ))}
+                </dl>
+              </li>
+            ))}
+          </ul>
+          <div className="relative hidden overflow-x-auto @min-[44rem]:block">
             <table className="w-full min-w-[640px] border-collapse text-sm">
               <caption className="sr-only">Imports, newest first</caption>
               <thead className="bg-cloud text-left text-[13px] text-navy">
@@ -86,6 +118,7 @@ export default async function DataQualityPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </section>
 

@@ -340,3 +340,34 @@ Adam reviewed Phase 6 with four notes, and passed on findings from another AI ag
 - `npm run test:e2e`: 54 passed (21 accessibility checks, 33 end-to-end).
 - `npm test`: 128 passed; 135 with the Postgres suite in Docker, which also ran the new migration.
 - Typecheck and lint: clean.
+
+## 2026-10-09 — Responsive pass: phones and tablets
+
+Adam asked for a pass at "weird" viewport sizes on phones and tablets, verified in a browser.
+
+**What Claude Code did**
+- Wrote `e2e/responsive.spec.ts`: 24 pages and dialogs at 15 widths, from a 320px phone to 1279px, including one pixel either side of each breakpoint, in a touch browser below 1024px. It checks layout automatically and saves 353 screenshots, which Claude then reviewed.
+- Added `e2e/small-screens.spec.ts` for the new phone layouts.
+
+**What it found**
+- **The queue and Students pages were 985px wide on every phone and tablet.** Screen-reader-only text inside the tables (the score's "out of 100", the reason chips' "more: …") is absolutely positioned. It escaped the tables' scroll boxes and stretched the page, so mobile Chrome zoomed out. The welcome dialog, search and phone menu broke with it. Fixed with `relative` on every scroll box. shadcn's own table had it; the hand-built ones didn't.
+- **On anything narrower than a 1280px screen, the queue table hid its most important columns off to the side.** On a phone only the name showed; on an iPad held sideways, the reasons and the Log contact button were off-screen. The queue and Students list are now cards below the width the table needs, with a "Sort by" menu (P12).
+- **Side panels were never the width they were meant to be.** They were 75% wide on phones and capped at 384px on desktop: shadcn sets sheet widths under `data-[side=right]:`, which outranked the plain overrides. In the import row editor, fix buttons ran out of their cards.
+- **The column-match step** hid "How it was matched", its whole point, off the side on phones. Now it stacks.
+- **The student page at 1024px** squeezed its cards into a 200px column. Three columns now need 60rem of room.
+- **The welcome dialog opened scrolled past its title on short phones,** because focus went to the first link, near the bottom.
+- **Smaller things:**
+  - the SSN data note quoted the whole note twice;
+  - the queue cards' Log contact button changed side from card to card;
+  - the column-match headings were 4–12px off their columns;
+  - long reason chips couldn't wrap.
+
+**What Claude got wrong this round**
+- **The first version of the checker missed things.** It skipped 1px elements and assumed anything inside a scroll box was contained, so the escaping screen-reader text showed up only as "the page scrolls sideways". It also missed the row editor's buttons running out of their cards. Both checks were improved and re-run.
+- **A note in DECISIONS claimed a phone held sideways has less room than a tablet.** It doesn't; a sideways phone is wider than 768px and gets the sidebar too. Corrected to exact figures before committing.
+- **Two of the new phone tests had their own bugs:** counting nested list items, and an exact width of 389.99998px.
+
+**Results**
+- `npm run test:responsive`: 24 passed (every page and dialog at all 15 widths).
+- `npm run test:e2e`: 82 passed, including the responsive checks at 320, 768 and 1024, and four phone-layout tests.
+- `npm test`: 128 passed. Typecheck and lint: clean.

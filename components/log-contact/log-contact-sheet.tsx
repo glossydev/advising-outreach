@@ -48,7 +48,8 @@ export function LogContactSheet({
         <SheetContent
           side="right"
           finalFocus={finalFocus}
-          className="w-full gap-0 shadow-xl sm:max-w-md"
+          // The sheet's own widths are set under data-[side=right]:, so overrides must be too: full width on phones.
+          className="gap-0 shadow-xl data-[side=right]:w-full data-[side=right]:sm:max-w-md"
         >
           {student && (
             <>

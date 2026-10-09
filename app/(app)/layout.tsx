@@ -32,7 +32,8 @@ export default async function AppLayout({ children }: Readonly<{ children: React
       <Sidebar />
       <div className="flex min-h-dvh flex-col md:pl-60">
         <TopBar advisors={advisors} selectedAdvisor={selectedAdvisor} students={studentIndex} />
-        <main id="main-content" tabIndex={-1} className="flex-1 p-6 focus:outline-none">
+        {/* @container: page layouts switch on the room they actually have (the sidebar takes 240px from md up), not the screen width. */}
+        <main id="main-content" tabIndex={-1} className="@container flex-1 p-6 focus:outline-none">
           {children}
         </main>
       </div>

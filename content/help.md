@@ -556,15 +556,24 @@ A note marked sensitive stays collapsed in the timeline until someone chooses to
 
 A student's [contact preference](#contact-preference) is shown wherever someone is about to reach out: in **Before you reach out** and at the top of the Log contact form. A preference saved from a note gets the same SSN check as the note itself, so it can never hold a number the note wasn't allowed to keep.
 
-## Phones and small screens
+## Phones and tablets
 
-The app works on a phone. The sidebar becomes a menu button at the top left, and the cards on a student's page stack under the timeline. Wide tables scroll sideways.
+The app works on phones and tablets, upright or sideways. Layouts follow the room on the screen:
 
-![The queue on a phone](/help/screens/mobile-queue.jpg "The Outreach Queue on a phone.")
+- **The sidebar** becomes a menu button at the top left on phones and small tablets.
+- **The Outreach Queue and the Students list** become a list of cards when the screen is too narrow for the full table, as on phones and on tablets in either direction. Each card shows everything the table row would. Sort them with **Sort by** at the top of the list, and reverse the order with the arrow button beside it.
+- **A student's page** stacks the timeline above the cards, two cards side by side where there's room.
+- **Log contact** and the import's row panel take the full width of a phone screen.
+- **Checking the column matches** stacks each field's match on a phone, with its own labels.
+- **The import review** keeps its spreadsheet-style table, which scrolls sideways. Tap a row number to open the row in a panel that fits the screen.
+
+![The queue on a phone](/help/screens/mobile-queue.jpg "The Outreach Queue on a phone: one card per student, with Sort by at the top.")
 
 ![The menu on a phone](/help/screens/mobile-nav.jpg "The menu, opened from the button at the top left.")
 
 ![A student on a phone](/help/screens/mobile-student.jpg "A student's page on a phone.")
+
+![A student on a tablet](/help/screens/tablet-student.jpg "A student's page on a tablet held sideways: the cards sit two by two under the timeline.")
 
 ## Questions and troubleshooting
 

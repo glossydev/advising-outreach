@@ -140,3 +140,13 @@
 .on-navy :focus-visible {
   outline-color: var(--rain);
 }
+
+/*
+ * Containers that take focus only so keyboard users start inside them (a dialog as it opens, the main
+ * content after "Skip to content") aren't controls, so they don't get a ring around their whole edge.
+ */
+[role="dialog"]:focus-visible,
+[role="alertdialog"]:focus-visible,
+main[tabindex="-1"]:focus-visible {
+  outline: none;
+}

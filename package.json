@@ -15,6 +15,7 @@
     "test:watch": "vitest",
     "test:e2e": "next build && playwright test --project=e2e",
     "docs:screenshots": "next build && playwright test --project=docs",
+    "test:responsive": "next build && playwright test --project=responsive",
     "seed": "tsx scripts/seed.ts",
     "db:reset": "tsx scripts/db-reset.ts",
     "data:audit": "tsx scripts/audit.ts"

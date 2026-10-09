@@ -288,12 +288,20 @@ plain("walk every screen and capture it for the help pages", async ({ browser, r
   // Small screens
   await page.setViewportSize({ width: 390, height: 844 })
   await page.goto("/")
+  // The cards, with Sort by above them, rather than the tiles at the top of the page.
+  await page.getByRole("combobox", { name: "Sort by" }).scrollIntoViewIfNeeded()
+  await page.evaluate(() => window.scrollBy(0, -16))
   await shot(page, "mobile-queue")
+  await page.evaluate(() => window.scrollTo(0, 0))
   await page.getByRole("button", { name: "Open navigation" }).click()
   await shot(page, "mobile-nav")
   await page.keyboard.press("Escape")
   await page.goto("/students/S1002")
   await shot(page, "mobile-student")
+  await page.setViewportSize({ width: 1024, height: 768 })
+  await page.goto("/students/S1002")
+  await page.getByRole("region", { name: "Before you reach out" }).scrollIntoViewIfNeeded()
+  await shot(page, "tablet-student")
 
   await context.close()
   await reloadSampleData(request)

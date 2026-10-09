@@ -316,12 +316,16 @@ export async function getStudentDataNotes(db: Db, studentId: string): Promise<St
   return rows.map((r) => {
     const changed = r.original_value !== null && r.final_value !== null && r.original_value !== r.final_value
     const where = r.field ? `${r.kind === "notes" ? `Note ${r.record_id}, ` : ""}${fieldLabel(r.kind === "notes" ? "notes" : "students", r.field)}` : null
+    // An SSN fix would otherwise quote the whole note twice, before and after, for one changed number.
+    const ssnFix = r.rule === "ssn_in_text" && changed
     return {
       rule: r.rule,
       title: ruleTitle(r.rule),
-      message: changed && where && r.rule !== "sensitive_content" && r.rule !== "contact_preference_in_text"
-        ? `${where}: "${r.original_value || "blank"}" → "${r.final_value || "blank"}"`
-        : r.message,
+      message: ssnFix
+        ? `Note ${r.record_id}: the number was replaced with "[SSN removed]".`
+        : changed && where && r.rule !== "sensitive_content" && r.rule !== "contact_preference_in_text"
+          ? `${where}: "${r.original_value || "blank"}" → "${r.final_value || "blank"}"`
+          : r.message,
       resolution: (RESOLUTION_TEXT[r.resolution] ?? (() => r.resolution))(r.accepted_by),
       record_id: r.record_id,
     }

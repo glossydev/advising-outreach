@@ -9,6 +9,7 @@ import { RiskBadge } from "@/components/shared/risk-badge"
 import { LastContact } from "@/components/shared/contact-recency"
 import { ReasonChips, ScoreBar } from "@/components/shared/score-bar"
 import { SortHeader } from "@/components/shared/sort-header"
+import { SortSelect } from "@/components/shared/sort-select"
 import { StudentCell } from "@/components/shared/student-cell"
 import { LogContactSheet } from "@/components/log-contact/log-contact-sheet"
 import { useSearchParamUpdater } from "@/hooks/use-search-param-updater"
@@ -23,6 +24,16 @@ const SORTABLE: { key: QueueSortKey; label: string }[] = [
   { key: "risk", label: "Risk" },
   { key: "last_contact", label: "Last contact" },
   { key: "follow_up", label: "Follow-up" },
+  { key: "score", label: "Score" },
+]
+
+/** The same sorts for the card layout, named for a "Sort by" list rather than a column heading. */
+const CARD_SORT_OPTIONS: { key: QueueSortKey; label: string }[] = [
+  { key: "rank", label: "Outreach rank" },
+  { key: "name", label: "Name" },
+  { key: "risk", label: "Risk flag" },
+  { key: "last_contact", label: "Last contact" },
+  { key: "follow_up", label: "Follow-up date" },
   { key: "score", label: "Score" },
 ]
 
@@ -96,17 +107,95 @@ export function QueueTable({
     key === sort ? (dir === "asc" ? "desc" : "asc") : QUEUE_SORT_DEFAULT_DIR[key]
 
   // Default order and direction stay out of the URL, so the plain queue keeps a plain address.
-  function onSort(key: QueueSortKey) {
-    const next = nextDir(key)
+  function onSort(key: QueueSortKey, direction: SortDirection = nextDir(key)) {
     update(
-      { sort: key === "rank" && next === "asc" ? null : key, dir: next === QUEUE_SORT_DEFAULT_DIR[key] ? null : next },
+      { sort: key === "rank" && direction === "asc" ? null : key, dir: direction === QUEUE_SORT_DEFAULT_DIR[key] ? null : direction },
       { resetPage: false },
     )
   }
 
+  const logButton = (s: QueueStudent) => (
+    <Button
+      variant="outline"
+      size="sm"
+      className="bg-card"
+      aria-label={`Log contact for ${fullName(s)}`}
+      onClick={(e) => {
+        e.stopPropagation()
+        triggerRef.current = e.currentTarget
+        setActive(s)
+        setOpen(true)
+      }}
+    >
+      <MessageSquarePlus aria-hidden="true" />
+      Log contact
+    </Button>
+  )
+
   return (
     <>
-      <div className="overflow-x-auto">
+      {/*
+        Two layouts for the room available: the table needs about 62rem, which the content area has from 1280px
+        screens up. Below that, the same rows as cards, so nothing is hidden off to the side on a phone or tablet.
+        Only one is ever displayed, so screen readers meet each student once.
+      */}
+      <div className="@min-[62rem]:hidden">
+        <div className="flex flex-wrap items-end justify-between gap-3 border-b border-border px-4 py-3">
+          <p className="text-[13px] text-muted-foreground">
+            {students.length} {students.length === 1 ? "student" : "students"}, ranked for outreach
+          </p>
+          <SortSelect options={CARD_SORT_OPTIONS} sort={sort} dir={dir} onSort={(key, direction) => onSort(key, direction ?? QUEUE_SORT_DEFAULT_DIR[key])} />
+        </div>
+        <ul aria-label="Students ranked for outreach" className="divide-y divide-border">
+          {students.map((s) => (
+            <li
+              key={s.student_id}
+              onClick={() => router.push(`/students/${s.student_id}`)}
+              className="flex cursor-pointer gap-3 px-4 py-3 hover:bg-muted"
+            >
+              <span className="w-6 shrink-0 pt-0.5 text-right font-medium tabular-nums text-muted-foreground">
+                <span className="sr-only">Rank </span>
+                {s.rank}
+              </span>
+              <div className="flex min-w-0 flex-1 flex-col gap-2.5">
+                <div className="flex items-start justify-between gap-2">
+                  <StudentCell student={s} />
+                  <RiskBadge risk={s.risk_flag} />
+                </div>
+                <dl className="grid grid-cols-2 gap-x-4 gap-y-2 text-[13px] @min-[36rem]:grid-cols-3">
+                  <div>
+                    <dt className="text-[12px] text-muted-foreground">Last contact</dt>
+                    <dd>
+                      <LastContact date={s.last_contact_date} days={s.days_since_contact} />
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[12px] text-muted-foreground">Follow-up</dt>
+                    <dd>
+                      <FollowUpCell followUps={s.open_follow_ups} />
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-[12px] text-muted-foreground">Score</dt>
+                    <dd>
+                      <ScoreBar score={s.outreach_score} />
+                    </dd>
+                  </div>
+                </dl>
+                <div className="flex flex-wrap items-end justify-between gap-2">
+                  <ReasonChips reasons={s.outreach_reasons.map((r) => r.text)} max={4} />
+                  {/* ml-auto keeps the button at the right edge whether or not it wraps below the chips. */}
+                  <div className="ml-auto">{logButton(s)}</div>
+                </div>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+      {/* relative: screen-reader-only text in the cells is positioned absolutely; without it, it escapes this
+          scroll box and widens the whole page on phones. */}
+      <div className="relative hidden overflow-x-auto @min-[62rem]:block">
         <table className="w-full min-w-[900px] border-collapse text-sm">
           <caption className="sr-only">
             Students ranked for outreach: follow-ups due today or overdue first, then students never contacted, then by outreach
@@ -166,23 +255,7 @@ export function QueueTable({
                     <ReasonChips reasons={s.outreach_reasons.map((r) => r.text)} />
                   </div>
                 </td>
-                <td className="px-2 py-2 text-right whitespace-nowrap">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="bg-card"
-                    aria-label={`Log contact for ${fullName(s)}`}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      triggerRef.current = e.currentTarget
-                      setActive(s)
-                      setOpen(true)
-                    }}
-                  >
-                    <MessageSquarePlus aria-hidden="true" />
-                    Log contact
-                  </Button>
-                </td>
+                <td className="px-2 py-2 text-right whitespace-nowrap">{logButton(s)}</td>
               </tr>
             ))}
           </tbody>

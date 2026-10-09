@@ -1,11 +1,13 @@
 "use client"
 
 import { useRef } from "react"
+import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { SearchX, TriangleAlert } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { EmptyState } from "@/components/shared/page-header"
 import { SortHeader } from "@/components/shared/sort-header"
+import { SortSelect } from "@/components/shared/sort-select"
 import { RiskBadge } from "@/components/shared/risk-badge"
 import { LastContact } from "@/components/shared/contact-recency"
 import { useSearchParamUpdater } from "@/hooks/use-search-param-updater"
@@ -86,7 +88,62 @@ export function DirectoryTable({
   }
 
   return (
-    <div className="overflow-x-auto">
+    <>
+      {/* Below the 62rem the table needs (1280px screens and up), the same students as cards. Only one layout is displayed. */}
+      <div className="@min-[62rem]:hidden">
+        <div className="flex justify-end border-b border-border px-4 py-3">
+          <SortSelect options={COLUMNS} sort={sort} dir={dir} onSort={(key, direction) => update({ sort: key, dir: direction ?? "asc" })} />
+        </div>
+        <ul aria-label="Students" className="divide-y divide-border">
+          {students.map((s) => (
+            <li key={s.student_id}>
+              <Link
+                href={`/students/${s.student_id}`}
+                className="flex flex-col gap-2 px-4 py-3 outline-none hover:bg-muted focus-visible:bg-cloud/60 focus-visible:ring-3 focus-visible:ring-ring/50"
+              >
+                <span className="flex items-start justify-between gap-2">
+                  <span className="flex min-w-0 flex-col leading-tight">
+                    <span className="font-medium text-navy">
+                      {s.last_name}, {s.first_name}
+                    </span>
+                    <span className="text-[13px] text-muted-foreground">
+                      <span className="font-mono tabular-nums">{s.student_id}</span> · {s.major} · {s.class_year}
+                    </span>
+                  </span>
+                  <RiskBadge risk={s.risk_flag} />
+                </span>
+                {s.possible_duplicates.length > 0 && (
+                  <span className="flex items-center gap-1.5 text-[13px] text-brick">
+                    <TriangleAlert className="size-3.5 shrink-0 text-amber" aria-hidden="true" />
+                    Possibly the same person as {s.possible_duplicates.map((d) => `${d.student_id} ${d.name}`).join(", ")}
+                  </span>
+                )}
+                <span className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-[13px] @min-[36rem]:grid-cols-4">
+                  <span className="flex flex-col">
+                    <span className="text-[12px] text-muted-foreground">Last contact</span>
+                    <LastContact date={s.last_contact_date} days={s.days_since_contact} />
+                  </span>
+                  <span className="flex flex-col">
+                    <span className="text-[12px] text-muted-foreground">Advisor</span>
+                    {s.advisor}
+                  </span>
+                  <span className="flex flex-col">
+                    <span className="text-[12px] text-muted-foreground">Credits</span>
+                    <span className="tabular-nums">{s.credits_earned}</span>
+                  </span>
+                  <span className="flex flex-col">
+                    <span className="text-[12px] text-muted-foreground">GPA</span>
+                    <span className="tabular-nums">{s.gpa === null ? "Not on record" : s.gpa.toFixed(2)}</span>
+                  </span>
+                </span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </div>
+
+    {/* relative keeps the absolutely positioned screen-reader-only text inside this scroll box. */}
+    <div className="relative hidden overflow-x-auto @min-[62rem]:block">
       <table className="w-full min-w-[900px] border-collapse text-sm">
         <caption className="sr-only">
           Student directory. Use the arrow keys to move between rows and Enter to open a student.
@@ -176,5 +233,6 @@ export function DirectoryTable({
         </tbody>
       </table>
     </div>
+    </>
   )
 }

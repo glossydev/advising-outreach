@@ -66,10 +66,14 @@ export default async function StudentDetailPage({ params }: Props) {
 
       <DuplicateBanner student={student} />
 
-      <div className="grid gap-6 lg:grid-cols-3">
+      {/*
+        Three columns once the content area has 60rem (1280px screens and up with the sidebar). Between 40 and 60rem,
+        the timeline takes the full width and the cards sit two-up beneath it; narrower, everything stacks.
+      */}
+      <div className="grid gap-6 @min-[60rem]:grid-cols-3">
         <section
           aria-labelledby="timeline-heading"
-          className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4 lg:col-span-2"
+          className="flex flex-col gap-4 rounded-lg border border-border bg-card p-4 @min-[60rem]:col-span-2"
         >
           <h2 id="timeline-heading" className="text-lg font-semibold text-navy">
             Contact timeline
@@ -86,7 +90,10 @@ export default async function StudentDetailPage({ params }: Props) {
           )}
         </section>
 
-        <aside className="flex flex-col gap-4" aria-label="Student summary">
+        <aside
+          className="grid items-start gap-4 @min-[40rem]:grid-cols-2 @min-[60rem]:flex @min-[60rem]:flex-col"
+          aria-label="Student summary"
+        >
           <BeforeYouReachOutCard student={student} notes={notes} />
           <OutreachPriorityCard student={student} />
           <AtAGlanceCard student={student} />

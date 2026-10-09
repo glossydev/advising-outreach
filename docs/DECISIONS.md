@@ -208,6 +208,13 @@ Every factor adds a plain-language reason, and the reasons are shown to advisors
 - **Each column's first click gives the useful order:** highest risk, longest without contact, soonest follow-up, highest score. Students with no follow-up sort last both ways.
 - **The sort lives in the URL,** with the default left out so the plain queue keeps a plain address.
 
+**P12: Phones and tablets get layouts of their own, not the desktop squeezed.** _(After Adam asked for a responsive pass, 2026-10-09.)_
+- **The queue and the Students list become cards** when the content area is narrower than the table needs (62rem: 1280px screens and up with the sidebar). That covers phones and tablets either way up. Each card carries everything the row did. A "Sort by" menu and a reverse button replace the clickable headings, using the same URL sort.
+- **The column matches stack** below 44rem, each part labeled. The import history does the same.
+- **A student's page** goes to three columns only at 60rem. Between 40 and 60rem the cards sit two-up under the timeline.
+- **Side panels** (Log contact, the import row editor) take the full width of a phone.
+- **The import review stays a sideways-scrolling table.** It's a spreadsheet preview with every column of the file, and the row panel, which fits any screen, is where the fixing happens.
+
 **P11: "Back to" returns to the exact list.** The student page's back link used to fall back to the unfiltered Students page, because `document.referrer` doesn't change on in-app navigation (found by a code review). Each list page now records its full address (filters, sort, page) for the browser tab, and the link says where it goes: "Back to Students" or "Back to Outreach Queue".
 
 ## Technical decisions
@@ -251,3 +258,8 @@ Every factor adds a plain-language reason, and the reasons are shown to advisors
 - **One worker, in order:** the specs share one database. Each spec reloads the sample data before it starts. The import spec, which empties the database, also reloads it when it finishes.
 - **Accessibility:** axe runs on every page and on each dialog and panel state. Anything worse than "minor" fails the run. Checks wait for animations to finish, because a panel measured mid-fade fails contrast checks it passes when settled.
 - **The screenshot walk is a second Playwright project** (`docs`), kept out of `test:e2e` because it rewrites committed files. It fails on any browser error, so it doubles as a sweep of every screen.
+
+**T11: Responsive layouts use container queries, and are tested at 15 widths.**
+- **Why container queries:** the sidebar appears at 768px and takes 240px, so the screen width says little about the room a page has: at 767px the content area is 719px wide, and at 768px it's 480px. Tailwind 4 has container queries built in. `<main>` is the container, and layouts switch on `@min-[…]:` sizes measured from the content.
+- **Two layouts where a table can't shrink:** the queue and Students list render a table and a card list, and only one is displayed. Neither has form controls, so nothing is duplicated for keyboard or screen-reader users. The column-match step has a dropdown per row, so it's one list that lays itself out per width instead.
+- **The check** (`e2e/responsive.spec.ts`): every page and dialog at 320–1279px, in a touch browser below 1024px. It fails on sideways page scrolling, anything off the screen (following positioning the way the browser does), a panel that scrolls sideways, or text spilling out of a control. The first run found the bug that mattered most: screen-reader-only text inside the tables escaped their scroll boxes and made the queue and Students pages 985px wide on every phone and tablet. Each scroll box now has `relative`, as shadcn's own table component already did.

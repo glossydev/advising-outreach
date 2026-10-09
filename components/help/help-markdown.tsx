@@ -91,7 +91,7 @@ const components: Components = {
     <aside className="my-4 rounded-md border-l-4 border-azurite bg-cloud px-4 py-1 text-[15px] [&_p]:my-2">{children}</aside>
   ),
   table: ({ children }) => (
-    <div className="my-4 overflow-x-auto rounded-lg border border-border">
+    <div className="relative my-4 overflow-x-auto rounded-lg border border-border">
       <table className="w-full border-collapse text-[14px]">{children}</table>
     </div>
   ),

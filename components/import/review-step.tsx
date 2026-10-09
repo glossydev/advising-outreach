@@ -209,7 +209,7 @@ export function ReviewStep({
         )}
       </div>
 
-      <div className="overflow-x-auto rounded-lg border border-border bg-card">
+      <div className="relative overflow-x-auto rounded-lg border border-border bg-card">
         <table className="w-full min-w-[960px] border-collapse text-[13px]">
           <caption className="sr-only">
             Rows in the file. Flagged cells are highlighted; open a row to review it.
