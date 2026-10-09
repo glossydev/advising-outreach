@@ -1,4 +1,7 @@
 import type { Metadata } from "next"
+import Link from "next/link"
+import { FileUp } from "lucide-react"
+import { Button } from "@/components/ui/button"
 import { PageHeader } from "@/components/shared/page-header"
 import { StatTile, StatTileGrid } from "@/components/shared/stat-tile"
 import { IssueList } from "@/components/data-quality/issue-list"
@@ -24,6 +27,12 @@ export default async function DataQualityPage() {
       <PageHeader
         title="Data Quality"
         description="Every import, what the import rules found in the files, and what was done about each problem. The source files are never changed."
+        actions={
+          <Button variant="outline" className="bg-card" nativeButton={false} render={<Link href="/import" />}>
+            <FileUp aria-hidden="true" />
+            Import data
+          </Button>
+        }
       />
 
       <StatTileGrid label="Import results">
@@ -38,7 +47,12 @@ export default async function DataQualityPage() {
           Import history
         </h2>
         {report.imports.length === 0 ? (
-          <p className="px-4 py-6 text-muted-foreground">No imports yet. The database is empty.</p>
+          <p className="px-4 py-6 text-muted-foreground">
+            No imports yet. The database is empty.{" "}
+            <Link href="/import" className="text-azurite underline-offset-2 hover:underline">
+              Import data
+            </Link>
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] border-collapse text-sm">

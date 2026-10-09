@@ -1,8 +1,10 @@
 # Import design
 
 **Status:** agreed 2026-10-08 (decisions G2, P1, P2, T4, T5 in [DECISIONS.md](DECISIONS.md)).
-- **Built (Phase 3):** the rules, column matching, fixes, commit and fix history, seed and reset.
-- **Not built yet:** the API (Phase 4) and the import page (Phase 5).
+- **Built:**
+  - the rules, column matching, fixes, commit and fix history, seed and reset (Phase 3);
+  - the API (Phase 4);
+  - the import page at `/import`, including the prototype panel's "Reload the sample data" (Phase 5).
 
 ## Why the import works this way
 
@@ -67,6 +69,7 @@ On the import page, in a clearly marked box labeled **Prototype only: not part o
 
 - **Use the sample students.csv** / **Use the sample contact_notes.csv**: loads the hiring team's files from `data/source/` on the server and sends them through exactly the same steps as an upload.
 - **Reset the database to empty**: so the importer can be demonstrated from a clean start, with a confirmation step.
+- **Reload the sample data**: back to the starting point in one step (empty, then the sample files imported with every suggestion accepted). Mainly for the hosted demo, where there's no command line.
 
 The panel is controlled by an environment variable (`ENABLE_PROTOTYPE_TOOLS`, on in this repo). A real deployment would turn it off and the routes behind it would refuse requests.
 

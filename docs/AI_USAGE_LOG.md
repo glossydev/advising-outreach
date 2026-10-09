@@ -244,3 +244,30 @@ Adam asked the hiring team about the empty README.txt, and they sent the full fi
 **Also:** "risk flag as set by the advising office" answers the audit's open question about where the flag comes from.
 
 **What changed in the repo:** the README is saved in `data/source/`, with the empty original kept in git history. The field descriptions on the column-matching screen now use the README's wording. The audit report was regenerated with a note recording the README's history.
+
+## 2026-10-08 — Phase 5: the import page and the welcome dialog
+
+**What Claude Code did**
+- **`/import`, a four-step import** (IMPORT_DESIGN.md):
+  1. Choose a file.
+  2. Check columns: non-exact matches are highlighted and sorted first (P2).
+  3. Review and fix: flagged cells highlighted by severity. A row panel shows each issue's reason and decision number, one-click fixes, "apply to all like this", "keep it as it is" and "leave this row out". Edits are re-checked instantly in the browser with the same functions the server uses (T4).
+  4. Done.
+- **"How importing works" panel** (P1): adds and updates, never deletes, and how to start clean.
+- **Prototype-only panel:** sample files, reset, and a new "Reload the sample data" (with an API route) so the hosted demo can be put back without a command line.
+- **Welcome dialog** (P4), reopenable from a help button. The Import nav link, an "Import data" button on Data Quality, and proper empty states for a reset database.
+
+**Verified in Chrome, end to end through the interface**
+1. Reset the database.
+2. Imported the sample students: columns all exact; 9 rows blocking, 1 warning; accepted the suggested fixes; 50 imported.
+3. Imported the sample notes: 12 rows blocking, 2 warnings. N041's panel showed the SSN, sensitivity and follow-up decisions, and a script check confirmed **no SSN-shaped number anywhere on the page**. 57 imported.
+4. A messy upload with renamed headers and five planted problems: every non-exact column highlighted, every problem caught. The ambiguous date offered both readings; the unfixable values offered no guess.
+
+**What Claude got wrong this phase**
+- **Base UI warned** (dev "2 Issues" badge) that buttons rendering links need `nativeButton={false}`. Found in the browser console and fixed in all four places.
+- **The welcome dialog reappeared on every page load.** "Closed" was only remembered in memory. Fixed: closing lasts for the browser session, and the checkbox makes it permanent.
+- **The section headings** used their own numbering, at odds with the step pills ("3. Check the column matches" sat under step 2). Fixed.
+- **With an empty database,** the queue would have said "Everyone has been contacted recently". There's now an empty state pointing to the importer.
+- **One browser freeze** on the column step. Claude added a guard so a dropdown reporting its current value can't feed back into itself. Unconfirmed: later "stuck" dialogs turned out to be Chrome pausing animations in the background automation tab, which may also explain the freeze. Noted in CLAUDE.md so it isn't misdiagnosed again.
+
+**Waiting on Adam:** the official UA Block A file. UA's brand rules forbid altering the mark, so Claude didn't draw one; the dialog shows a neutral icon until the official file is in `public/brand/`.

@@ -5,7 +5,8 @@ import { DirectoryToolbar } from "@/components/students/directory-toolbar"
 import { DirectoryTable } from "@/components/students/directory-table"
 import { DirectoryPagination } from "@/components/students/directory-pagination"
 import { TableSkeleton } from "@/components/queue/queue-skeleton"
-import { getAdvisors, getMajors, getStudents } from "@/lib/data"
+import { EmptyDatabase } from "@/components/shared/empty-database"
+import { getAdvisors, getMajors, getRecordCounts, getStudents } from "@/lib/data"
 import { getSelectedAdvisor } from "@/lib/advisor"
 import { ALL_ADVISORS, PAGE_SIZE } from "@/lib/config"
 import { parseDirectoryParams, type SearchParams } from "@/lib/search-params"
@@ -69,7 +70,12 @@ async function DirectoryResults({
   page: number
   params: SearchParams
 }) {
-  const [students, everyone] = await Promise.all([getStudents(filters), getStudents({ advisor: filters.advisor })])
+  const [students, everyone, counts] = await Promise.all([
+    getStudents(filters),
+    getStudents({ advisor: filters.advisor }),
+    getRecordCounts(),
+  ])
+  if (counts.students === 0) return <EmptyDatabase />
   const pageCount = Math.max(1, Math.ceil(students.length / PAGE_SIZE))
   const current = Math.min(page, pageCount)
   const start = (current - 1) * PAGE_SIZE

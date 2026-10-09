@@ -2,12 +2,13 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { ListOrdered, ShieldCheck, Users } from "lucide-react"
+import { FileUp, ListOrdered, ShieldCheck, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const NAV_ITEMS = [
   { href: "/", label: "Outreach Queue", icon: ListOrdered, match: (p: string) => p === "/" },
   { href: "/students", label: "Students", icon: Users, match: (p: string) => p.startsWith("/students") },
+  { href: "/import", label: "Import", icon: FileUp, match: (p: string) => p.startsWith("/import") },
   { href: "/data-quality", label: "Data Quality", icon: ShieldCheck, match: (p: string) => p.startsWith("/data-quality") },
 ]
 

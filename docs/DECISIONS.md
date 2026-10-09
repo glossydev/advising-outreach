@@ -149,8 +149,9 @@ Every factor adds a plain-language reason, and the reasons are shown to advisors
 
 **P4: First visit opens a welcome dialog.**
 - It explains what the app is, gives a short tour of the features and how to use them, and uses the University of Arizona "A" mark in its branding.
-- A "Don't show this again" checkbox is remembered in that browser (there are no user accounts to store it against).
-- The dialog can be reopened from the help menu. _(Adam, 2026-10-08.)_
+- A "Don't show this again" checkbox is remembered in that browser (there are no user accounts to store it against). Closing without ticking it keeps the dialog away for the rest of the visit.
+- The dialog can be reopened from the help (?) button in the top bar. _(Adam, 2026-10-08.)_
+- **The logo:** UA's brand rules say the Block A must not be altered in any way, so the app never draws its own version. It shows the official file if it's placed at `public/brand/ua-block-a.svg` (or `.png`), with a trademark line, and a neutral icon otherwise.
 
 **P5: A "Before you reach out" card replaces v0's AI summary card.**
 - v0 showed generated summaries from mock data. The real AI summary was deferred, and a fake one would misrepresent what the tool does.

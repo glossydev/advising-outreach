@@ -43,6 +43,9 @@ Tests on Postgres too: start a throwaway container and point `TEST_DATABASE_URL`
 - `lib/import/`: the import engine, all pure functions. `rules/` holds one file per rule (D1–D23)
 - `lib/services/`: everything that touches the database (students, notes, data quality, import scan/commit, seed, prototype tools)
 - `lib/api.ts`: the API's error shape and helpers; `app/api/`: route handlers
+- `app/import/` + `components/import/`: the step-by-step import (choose a file, check columns, review and fix, done) and the prototype-only panel; it re-checks rows in the browser with the same `lib/import` functions the server uses
+- `components/app-shell/welcome-dialog.tsx`: first-visit welcome (P4); the UA logo is only shown from an official file in `public/brand/`
+- Testing the UI with browser automation: the automated tab may be in the background, where Chrome pauses CSS animations, so dialogs and panels can look stuck mid open/close. Take a screenshot (which brings the tab forward) before concluding something is broken.
 - `lib/scoring.ts`: outreach score and reasons (`WEIGHTS` table)
 - `lib/types.ts`, `lib/config.ts`: shared types and settings (`TODAY`, reference date via `NEXT_PUBLIC_REFERENCE_DATE`)
 - `AGENTS.md` is written by `next dev` itself. Next 16 differs from older versions; its own docs are in `node_modules/next/dist/docs/`, so check there before using an unfamiliar Next API.

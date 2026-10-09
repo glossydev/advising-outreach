@@ -49,3 +49,7 @@ export async function getStudentIndex() {
 export async function getDataQualityReport() {
   return dataQualityReport(await getDb())
 }
+
+export async function getRecordCounts() {
+  return students.countRecords(await getDb())
+}

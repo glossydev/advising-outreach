@@ -1,6 +1,7 @@
 import type { Db } from "@/lib/db/client"
 import { clearData, markInitialized } from "@/lib/db/setup"
 import { ForbiddenError } from "./errors"
+import { seedSampleData } from "./seed"
 
 /*
  * Tools that only make sense in a prototype (DECISIONS P1, IMPORT_DESIGN "Prototype-only panel"):
@@ -21,4 +22,13 @@ export async function resetDatabase(db: Db): Promise<void> {
   requirePrototypeTools()
   await clearData(db)
   await markInitialized(db)
+}
+
+/** Back to the starting point: empty the database and import the sample files again, every suggested fix accepted (T5). */
+export async function reloadSampleData(db: Db): Promise<{ students: number; notes: number }> {
+  requirePrototypeTools()
+  await clearData(db)
+  const result = await seedSampleData(db)
+  await markInitialized(db)
+  return { students: result.students.added, notes: result.notes.added }
 }

@@ -208,6 +208,7 @@ An upload whose headers differ from the expected ones (`Student ID`, `Surname`, 
   "kind": "students",
   "source": { "name": "smoke-upload.csv", "kind": "upload", "sha256": "…", "bytes": 196 },
   "headers": ["Student ID", "First Name", "Surname", "…"],
+  "preview": [["S2001", "Ana", "Ruiz", "…"]],
   "matches": [
     { "field": "student_id", "header": "Student ID", "column": 0, "kind": "formatting" },
     { "field": "last_name", "header": "Surname", "column": 2, "kind": "alias" },
@@ -227,7 +228,8 @@ An upload whose headers differ from the expected ones (`Student ID`, `Surname`, 
 }
 ```
 
-`existing` is a snapshot of what's in the database, so the browser can re-check rows instantly as they're edited (T4).
+- `preview` is the first three data rows exactly as in the file (SSN-shaped numbers masked), so the column screen can show sample values for any column.
+- `existing` is a snapshot of what's in the database, so the browser can re-check rows instantly as they're edited (T4).
 
 ### `POST /api/import/commit`
 
@@ -256,4 +258,12 @@ Prototype tools only. Empties the database for a clean import; the app won't rel
 
 ```json
 { "ok": true, "students": 0, "notes": 0 }
+```
+
+### `POST /api/prototype/reload-sample`
+
+Prototype tools only. Empties the database, then imports the sample files with every suggested fix accepted: the same result as `npm run seed`, for the hosted demo, where there's no command line.
+
+```json
+{ "ok": true, "students": 50, "notes": 57 }
 ```

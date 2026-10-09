@@ -4,13 +4,19 @@ import { StatTile, StatTileGrid } from "@/components/shared/stat-tile"
 import { QueueFilters } from "@/components/queue/queue-filters"
 import { QueueTable } from "@/components/queue/queue-table"
 import { QueueTableSkeleton } from "@/components/queue/queue-skeleton"
-import { getAdvisors, getOutreachQueue, getOutreachStats } from "@/lib/data"
+import { EmptyDatabase } from "@/components/shared/empty-database"
+import { getAdvisors, getOutreachQueue, getOutreachStats, getRecordCounts } from "@/lib/data"
 import { getSelectedAdvisor } from "@/lib/advisor"
 import { OVERDUE_DAYS } from "@/lib/config"
 import { parseQueueParams, type SearchParams } from "@/lib/search-params"
 
 export default async function OutreachQueuePage({ searchParams }: { searchParams: Promise<SearchParams> }) {
-  const [params, advisor, advisors] = await Promise.all([searchParams, getSelectedAdvisor(), getAdvisors()])
+  const [params, advisor, advisors, counts] = await Promise.all([
+    searchParams,
+    getSelectedAdvisor(),
+    getAdvisors(),
+    getRecordCounts(),
+  ])
   const filters = parseQueueParams(params)
   const stats = await getOutreachStats(advisor)
   const scope = advisor ?? "all advisors"
@@ -47,9 +53,13 @@ export default async function OutreachQueuePage({ searchParams }: { searchParams
           classYears={filters.class_years ?? []}
           minDays={filters.min_days}
         />
-        <Suspense key={JSON.stringify({ filters, advisor })} fallback={<QueueTableSkeleton />}>
-          <QueueResults filters={{ ...filters, advisor }} />
-        </Suspense>
+        {counts.students === 0 ? (
+          <EmptyDatabase />
+        ) : (
+          <Suspense key={JSON.stringify({ filters, advisor })} fallback={<QueueTableSkeleton />}>
+            <QueueResults filters={{ ...filters, advisor }} />
+          </Suspense>
+        )}
       </section>
     </div>
   )

@@ -5,7 +5,7 @@ import { getDataQualityReport } from "@/lib/services/data-quality"
 import { ValidationError } from "@/lib/services/errors"
 import { scanImport } from "@/lib/services/import-scan"
 import { createNote } from "@/lib/services/notes"
-import { resetDatabase } from "@/lib/services/prototype"
+import { reloadSampleData, resetDatabase } from "@/lib/services/prototype"
 import { readSampleFile, seedSampleData } from "@/lib/services/seed"
 import {
   getOutreachQueue,
@@ -114,8 +114,10 @@ describe("data quality and imports", () => {
     expect(scan.issues.find((i) => i.rule === "ssn_in_text")?.value).not.toMatch(/\d{3}-\d{2}-\d{4}/)
   })
 
-  it("empties the database on reset", async () => {
+  it("empties the database on reset, and reloads the sample data on request", async () => {
     await resetDatabase(db)
     expect(await listStudents(db, {}, TODAY)).toEqual([])
+    expect(await reloadSampleData(db)).toEqual({ students: 50, notes: 57 })
+    expect((await getStudent(db, "S1037", TODAY))?.student_id).toBe("S1037")
   })
 })

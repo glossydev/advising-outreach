@@ -4,6 +4,7 @@ import type { Db } from "@/lib/db/client"
 import { buildRows, matchColumns, missingRequired, unusedHeaders, type ColumnMatch } from "@/lib/import/columns"
 import { parseCsv } from "@/lib/import/csv"
 import { FIELDS, type ImportKind } from "@/lib/import/fields"
+import { maskSsn } from "@/lib/import/text"
 import type { ExistingNote, ExistingStudent, ImportRow, Issue } from "@/lib/import/types"
 import { validateRows } from "@/lib/import/validate"
 import { loadExistingData } from "./existing-data"
@@ -16,6 +17,8 @@ export interface ScanResult {
   kind: ImportKind
   source: { name: string; kind: ImportSource["kind"]; sha256: string; bytes: number }
   headers: string[]
+  /** The first few data rows exactly as in the file, so the column screen can show sample values for any column. */
+  preview: string[][]
   matches: ColumnMatch[]
   unusedHeaders: string[]
   missingRequired: string[]
@@ -55,6 +58,7 @@ export async function scanImport(
     kind,
     source: { name: source.name, kind: source.kind, sha256: createHash("sha256").update(source.text).digest("hex"), bytes },
     headers: table.headers,
+    preview: table.records.slice(0, 3).map((record) => record.map((value) => maskSsn(value))),
     matches: columns,
     unusedHeaders: unusedHeaders(table.headers, columns),
     missingRequired: missing,

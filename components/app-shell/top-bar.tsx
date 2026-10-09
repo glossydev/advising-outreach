@@ -5,6 +5,7 @@ import { TODAY_ISO } from "@/lib/config"
 import { AdvisorSelect } from "./advisor-select"
 import { CommandPalette } from "./command-palette"
 import { MobileNav } from "./mobile-nav"
+import { HelpButton } from "./welcome-dialog"
 
 export function TopBar({
   advisors,
@@ -26,6 +27,7 @@ export function TopBar({
         <CalendarDays className="size-3.5" aria-hidden="true" />
         Today: {formatDate(TODAY_ISO)}
       </p>
+      <HelpButton />
     </header>
   )
 }
