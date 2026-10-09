@@ -5,6 +5,7 @@ import { getDataQualityReport } from "@/lib/services/data-quality"
 import { ValidationError } from "@/lib/services/errors"
 import { scanImport } from "@/lib/services/import-scan"
 import { createNote } from "@/lib/services/notes"
+import { clearContactPreference, setContactPreference } from "@/lib/services/preferences"
 import { reloadSampleData, resetDatabase } from "@/lib/services/prototype"
 import { readSampleFile, seedSampleData } from "@/lib/services/seed"
 import {
@@ -55,8 +56,14 @@ describe("students", () => {
     expect((await getStudent(db, "S1050", TODAY))?.possible_duplicates).toEqual([{ student_id: "S1021", name: "Grace Okonkwo" }])
   })
 
-  it("carries the saved contact preference (D19)", async () => {
-    expect((await getStudent(db, "S1002", TODAY))?.contact_preference).toMatchObject({ channel: "Phone", note_id: "N001" })
+  it("carries the contact preference saved from a note (D19, P9)", async () => {
+    expect((await getStudent(db, "S1002", TODAY))?.contact_preference).toEqual({
+      channel: "Phone",
+      only: true,
+      details: "Student asked that we contact him by phone only; email goes to a shared family account. Best reached after 5 pm.",
+      stated_on: "2026-01-22",
+      source_note_id: "N001",
+    })
   })
 
   it("explains what the import did to a student's data", async () => {
@@ -75,6 +82,26 @@ describe("students", () => {
     const queue = await getOutreachQueue(db, { advisor: "Okafor", limit: 3 }, TODAY)
     expect(queue).toHaveLength(3)
     expect(queue.every((s) => s.advisor === "Okafor")).toBe(true)
+  })
+
+  it("sorts the queue by any column while each row keeps its outreach rank", async () => {
+    const ranked = await getOutreachQueue(db, {}, TODAY)
+    expect(ranked.map((s) => s.rank)).toEqual(ranked.map((_, i) => i + 1))
+    const rankOf = new Map(ranked.map((s) => [s.student_id, s.rank]))
+
+    const byName = await getOutreachQueue(db, { sort: "name", dir: "asc" }, TODAY)
+    expect(byName.map((s) => `${s.last_name}, ${s.first_name}`)).toEqual(byName.map((s) => `${s.last_name}, ${s.first_name}`).sort((a, b) => a.localeCompare(b)))
+    expect(byName.every((s) => s.rank === rankOf.get(s.student_id))).toBe(true)
+
+    const byRisk = await getOutreachQueue(db, { sort: "risk", dir: "desc" }, TODAY)
+    expect(byRisk[0].risk_flag).toBe("High")
+    expect(byRisk.at(-1)?.risk_flag).toBe("Low")
+
+    // Students without a follow-up go last whichever way the column is sorted.
+    for (const dir of ["asc", "desc"] as const) {
+      const byFollowUp = await getOutreachQueue(db, { sort: "follow_up", dir }, TODAY)
+      expect(byFollowUp[0].open_follow_ups[0]?.note_id).toBe("N041")
+    }
   })
 })
 
@@ -96,6 +123,61 @@ describe("logging a contact", () => {
     expect(student.outreach_score).toBeLessThan(before.outreach_score)
     expect(student.outreach_reasons.map((r) => r.rule)).not.toContain("waiting_on_student")
     expect((await listNotes(db, "S1002"))[0].note_id).toBe("N058")
+  })
+})
+
+describe("follow-ups (P8)", () => {
+  it("keeps a follow-up open when an unrelated contact is logged", async () => {
+    await createNote(db, "S1037", note({ advisor: "Lindqvist", note_text: "Sent campus map." }), TODAY)
+    expect((await getStudent(db, "S1037", TODAY))?.open_follow_ups).toEqual([{ date: "2026-10-15", note_id: "N041" }])
+  })
+
+  it("closes a follow-up when the contact is logged as completing it", async () => {
+    const { note: saved, student } = await createNote(
+      db,
+      "S1037",
+      note({ advisor: "Lindqvist", note_text: "FAFSA verification submitted.", completes_follow_ups: ["N041"] }),
+      TODAY,
+    )
+    expect(student.open_follow_ups).toEqual([])
+    expect((await listNotes(db, "S1037")).find((n) => n.note_id === "N041")?.follow_up_done_by).toBe(saved.note_id)
+  })
+
+  it("refuses to complete a follow-up that's already done, or another student's", async () => {
+    await expect(createNote(db, "S1037", note({ completes_follow_ups: ["N041"] }), TODAY)).rejects.toBeInstanceOf(ValidationError)
+    await expect(createNote(db, "S1002", note({ completes_follow_ups: ["N041"] }), TODAY)).rejects.toBeInstanceOf(ValidationError)
+  })
+})
+
+describe("contact preferences (P9)", () => {
+  it("saves the preference a logged note states, only when asked", async () => {
+    const text = "Student prefers email from now on."
+    await createNote(db, "S1001", note({ advisor: "Okafor", note_text: text }), TODAY)
+    expect((await getStudent(db, "S1001", TODAY))?.contact_preference).toBeNull()
+    const { note: saved, student } = await createNote(db, "S1001", note({ advisor: "Okafor", note_text: text, save_preference: true }), TODAY)
+    expect(student.contact_preference).toEqual({ channel: "Email", only: false, details: text, stated_on: TODAY, source_note_id: saved.note_id })
+  })
+
+  it("sets, checks and clears a preference entered on the student's page", async () => {
+    const student = await setContactPreference(db, "S1001", { channel: "Text", only: true, details: " After 5 pm. " }, TODAY)
+    expect(student.contact_preference).toEqual({ channel: "Text", only: true, details: "After 5 pm.", stated_on: TODAY, source_note_id: null })
+    await expect(setContactPreference(db, "S1001", { channel: null, only: false, details: "" }, TODAY)).rejects.toBeInstanceOf(ValidationError)
+    await expect(setContactPreference(db, "S1001", { channel: "Phone", only: false, details: "SSN 123-45-6789" }, TODAY)).rejects.toBeInstanceOf(
+      ValidationError,
+    )
+    expect((await clearContactPreference(db, "S1001", TODAY)).contact_preference).toBeNull()
+  })
+
+  it("reads preferences saved in the earlier shape", async () => {
+    const legacy = { channel: "Phone", text: "Phone only, after 5 pm.", note_id: "N001", noted_on: "2026-01-22" }
+    await db.updateTable("students").set({ contact_preference: JSON.stringify(legacy) }).where("student_id", "=", "S1001").execute()
+    expect((await getStudent(db, "S1001", TODAY))?.contact_preference).toEqual({
+      channel: "Phone",
+      only: true,
+      details: "Phone only, after 5 pm.",
+      stated_on: "2026-01-22",
+      source_note_id: "N001",
+    })
   })
 })
 

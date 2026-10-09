@@ -14,7 +14,7 @@ JSON over HTTP, served by the Next.js app (`app/api/`). Route handlers are thin:
 | 400 | `invalid_json` | The body isn't JSON |
 | 403 | `forbidden` | A prototype-only route when `ENABLE_PROTOTYPE_TOOLS=false` |
 | 404 | `not_found` | No such student |
-| 422 | `validation_failed` | A note breaks a rule (future date, SSN, …); `fields` has a message per field |
+| 422 | `validation_failed` | A note or contact preference breaks a rule (future date, SSN, …); `fields` has a message per field |
 | 422 | `blocking_issues`, `missing_columns`, `rows_mismatch`, `empty_file`, `file_too_large`, `invalid_file` | An import can't proceed; `issues` lists blocking issues |
 | 500 | `internal_error` | Anything unexpected; details go to the server log, not the response |
 
@@ -63,7 +63,9 @@ Search, filter, sort and page the directory.
         { "rule": "gpa", "points": 10, "text": "GPA 2.15 (below 2.5)" },
         { "rule": "waiting_on_student", "points": 15, "text": "Waiting on a reply since Jun 2 (125 days)" }
       ],
-      "contact_preference": { "channel": "Phone", "text": "Student asked that we contact him by phone only; email goes to a shared family account. Best reached after 5 pm.", "note_id": "N001", "noted_on": "2026-01-22" },
+      "contact_preference": { "channel": "Phone", "only": true, "details": "Student asked that we contact him by phone only; email goes to a shared family account. Best reached after 5 pm.", "stated_on": "2026-01-22", "source_note_id": "N001" },
+      "open_follow_ups": [],
+      "follow_up_due": false,
       "possible_duplicates": [],
       "note_count": 3
     }
@@ -104,7 +106,7 @@ The student (as above), their notes newest first, and `dataNotes`: what the impo
   "notes": [
     { "note_id": "N041", "student_id": "S1037", "contact_date": "2026-09-11", "contact_type": "In person", "advisor": "Lindqvist",
       "note_text": "… she gave her SSN [SSN removed] so I could fill it out. Follow up on missing FAFSA verification by Oct 15.",
-      "follow_up_date": "2026-10-15", "is_sensitive": true, "source": "import", "created_at": "…" },
+      "follow_up_date": "2026-10-15", "follow_up_done_by": null, "is_sensitive": true, "source": "import", "created_at": "…" },
     { "note_id": "N007", "…": "…" }
   ]
 }
@@ -121,7 +123,8 @@ POST /api/students/S1002/notes
 Content-Type: application/json
 
 { "contact_date": "2026-10-05", "contact_type": "Phone", "advisor": "Reyes",
-  "note_text": "Called as requested. Set up tutoring for Accounting II.", "follow_up_date": "2026-10-12", "is_sensitive": false }
+  "note_text": "Called as requested. Set up tutoring for Accounting II.", "follow_up_date": "2026-10-12", "is_sensitive": false,
+  "completes_follow_ups": [], "save_preference": false }
 ```
 
 `201`
@@ -129,17 +132,20 @@ Content-Type: application/json
 ```json
 {
   "note": { "note_id": "N058", "student_id": "S1002", "contact_type": "Phone", "source": "app", "follow_up_date": "2026-10-12", "…": "…" },
-  "student": { "student_id": "S1002", "outreach_score": 50, "outreach_reasons": [
+  "student": { "student_id": "S1002", "outreach_score": 40, "outreach_reasons": [
     { "rule": "risk_flag", "points": 30, "text": "High risk flag" },
-    { "rule": "gpa", "points": 10, "text": "GPA 2.15 (below 2.5)" },
-    { "rule": "follow_up", "points": 10, "text": "Follow-up due Oct 12 (in 7 days)" } ], "…": "…" }
+    { "rule": "gpa", "points": 10, "text": "GPA 2.15 (below 2.5)" } ],
+    "open_follow_ups": [{ "date": "2026-10-12", "note_id": "N058" }], "follow_up_due": false, "…": "…" }
 }
 ```
 
-- `contact_type` is one of `Phone`, `Email`, `In person`, `Zoom`.
+- `contact_type` is required, one of `Phone`, `Email`, `In person`, `Zoom`: how this contact happened (P6).
 - The contact date can't be after the reference "today" (D8).
 - Note text can't contain an SSN-shaped number (D17).
-- A follow-up date can't be before the contact date.
+- A follow-up date can't be before the contact date. It earns no points until two days before (P8).
+- `completes_follow_ups` (optional): note IDs of this student's open follow-ups that this contact completes (P8). Each must be this student's and still open, or the request fails with `422`.
+- `save_preference` (optional): save the contact preference the note text states as the student's (P9). The server works it out from the saved text itself; if the text states none, nothing changes.
+- The note, the completed follow-ups and the preference are written in one transaction.
 - New note IDs continue the dataset's pattern (N058, N059, …).
 
 A future date with an SSN → `422`
@@ -150,22 +156,45 @@ A future date with an SSN → `422`
   "note_text": "This looks like a Social Security number. Remove it before saving: SSNs must not be stored in advising notes." } } }
 ```
 
+## `PUT /api/students/:id/contact-preference`
+
+Sets the student's contact preference (P9), dated today, with no source note. Returns the student.
+
+```http
+PUT /api/students/S1001/contact-preference
+Content-Type: application/json
+
+{ "channel": "Text", "only": true, "details": "After 5 pm on weekdays." }
+```
+
+`200 { "student": { "contact_preference": { "channel": "Text", "only": true, "details": "After 5 pm on weekdays.", "stated_on": "2026-10-05", "source_note_id": null }, "…": "…" } }`
+
+- `channel` is `Phone`, `Email`, `Text` or `null`. `only` is ignored without a channel.
+- `details` is optional, up to 500 characters, and can't contain an SSN-shaped number (D17).
+- A channel or details is required, or the request fails with `422`.
+
+## `DELETE /api/students/:id/contact-preference`
+
+Removes it. The note it came from, if any, stays. Returns the student.
+
 ## `GET /api/outreach`
 
-The ranked queue (never contacted first, then highest score; D24) and the summary counts.
+The ranked queue and the summary counts. Ranked in three groups: a follow-up due today or overdue, the longest overdue first (P8); never contacted (D24); then highest score. Each student carries `rank`, its place in that order, whatever `sort` the rows are returned in (P10).
 
 | Parameter | Values |
 |---|---|
 | `advisor` | Exact value |
 | `risk`, `classYear` | Comma-separated |
 | `minDaysSince` | Days since last contact (students never contacted always qualify) |
-| `limit` | Max students returned |
+| `limit` | Max students returned (the top of the ranking, before sorting) |
+| `sort` | `rank` (default), `name`, `risk`, `last_contact`, `follow_up`, `score` |
+| `dir` | `asc` or `desc`. Defaults to each column's natural order: highest risk, longest without contact, soonest follow-up, highest score |
 
-`GET /api/outreach?limit=5` (students trimmed to ID and score)
+`GET /api/outreach?limit=5` (students trimmed to rank, ID and score)
 
 ```json
 {
-  "students": [ "S1018 (80, never contacted)", "S1006 (55, never contacted)", "S1040 (55, never contacted)", "S1044 (90)", "S1014 (90)" ],
+  "students": [ "1 S1018 (80, never contacted)", "2 S1006 (55, never contacted)", "3 S1040 (55, never contacted)", "4 S1044 (90)", "5 S1014 (90)" ],
   "stats": { "assigned": 50, "overdue": 29, "high_risk": 10, "contacted_this_week": 2 }
 }
 ```

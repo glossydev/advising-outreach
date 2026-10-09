@@ -91,6 +91,17 @@ const initial: Migration = {
   },
 }
 
+/** P8: a follow-up stays open until a later contact is logged as completing it. */
+const followUpDone: Migration = {
+  async up(db: Kysely<unknown>) {
+    await db.schema.alterTable("contact_notes").addColumn("follow_up_done_by", "text").execute()
+  },
+  async down(db: Kysely<unknown>) {
+    await db.schema.alterTable("contact_notes").dropColumn("follow_up_done_by").execute()
+  },
+}
+
 export const MIGRATIONS: Record<string, Migration> = {
   "0001_initial": initial,
+  "0002_follow_up_done": followUpDone,
 }

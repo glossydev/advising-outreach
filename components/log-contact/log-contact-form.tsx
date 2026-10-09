@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react"
 import { useRouter } from "next/navigation"
-import { TriangleAlert } from "lucide-react"
+import { Info } from "lucide-react"
 import { toast } from "sonner"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -12,11 +12,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { DatePicker } from "@/components/shared/date-picker"
 import { TODAY_ISO } from "@/lib/config"
+import { preferenceHeading } from "@/lib/contact-preference"
+import { daysBetween } from "@/lib/import/dates"
 import { CONTACT_TYPES } from "@/lib/import/fields"
-import { findSensitiveTerms } from "@/lib/import/text"
-import { fullName } from "@/lib/format"
+import { extractContactPreference, findSensitiveTerms } from "@/lib/import/text"
+import { formatDate, fullName } from "@/lib/format"
 import { NOTE_MAX_LENGTH, validateNoteInput } from "@/lib/validation"
-import type { ContactPreference, NewNoteInput, NoteFieldErrors } from "@/lib/types"
+import type { ContactPreference, FollowUp, NewNoteInput, NoteFieldErrors } from "@/lib/types"
 import { cn } from "@/lib/utils"
 
 export interface LogContactStudent {
@@ -25,9 +27,13 @@ export interface LogContactStudent {
   last_name: string
   advisor: string
   contact_preference?: ContactPreference | null
+  open_follow_ups?: FollowUp[]
 }
 
 const TYPE_ITEMS = Object.fromEntries(CONTACT_TYPES.map((t) => [t, t])) as Record<string, string>
+
+/** How close to a follow-up's date a contact has to be for "completes it" to start ticked (P8). */
+const COMPLETES_WITHIN_DAYS = 2
 
 function FieldError({ id, message }: { id: string; message?: string }) {
   if (!message) return null
@@ -55,17 +61,30 @@ export function LogContactForm({
   onSaved: () => void
 }) {
   const router = useRouter()
-  const preferred = student.contact_preference?.channel
+  // No default contact type: it records how this contact happened, so the advisor says which (P6).
   const [values, setValues] = useState<NewNoteInput>({
     contact_date: TODAY_ISO,
-    contact_type: preferred === "Phone" || preferred === "Email" ? preferred : "Email",
+    contact_type: "",
     advisor,
     note_text: "",
     follow_up_date: null,
     is_sensitive: false,
   })
   const [errors, setErrors] = useState<NoteFieldErrors>({})
+  const [formError, setFormError] = useState<string | null>(null)
+  /** Follow-ups the advisor ticked or unticked; the rest follow the default. */
+  const [completeChoices, setCompleteChoices] = useState<Record<string, boolean>>({})
+  const [savePreference, setSavePreference] = useState(false)
   const [pending, startTransition] = useTransition()
+
+  const openFollowUps = student.open_follow_ups ?? []
+  const completes = (f: FollowUp) =>
+    completeChoices[f.note_id] ?? (Boolean(values.contact_date) && daysBetween(values.contact_date, f.date) <= COMPLETES_WITHIN_DAYS)
+  // D19, P9: a preference stated in this note can be saved on the student's record, if the advisor says so.
+  const stated = extractContactPreference(values.note_text)
+  const current = student.contact_preference ?? null
+  // D18: suggest marking the note sensitive; the advisor decides.
+  const sensitiveTerms = values.is_sensitive ? [] : findSensitiveTerms(values.note_text)
 
   function update<K extends keyof NewNoteInput>(key: K, value: NewNoteInput[K]) {
     setValues((v) => ({ ...v, [key]: value }))
@@ -76,18 +95,31 @@ export function LogContactForm({
   function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = event.currentTarget
+    setFormError(null)
     const clientErrors = validateNoteInput(values)
     if (Object.keys(clientErrors).length) {
       setErrors(clientErrors)
       form.querySelector<HTMLElement>(`#${Object.keys(clientErrors)[0]}`)?.focus()
       return
     }
+    const payload: NewNoteInput = {
+      ...values,
+      completes_follow_ups: openFollowUps.filter(completes).map((f) => f.note_id),
+      save_preference: Boolean(stated) && savePreference,
+    }
     startTransition(async () => {
-      const response = await fetch(`/api/students/${encodeURIComponent(student.student_id)}/notes`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(values),
-      })
+      // A failed request leaves the form as it was: the note is never lost to a network error.
+      let response: Response
+      try {
+        response = await fetch(`/api/students/${encodeURIComponent(student.student_id)}/notes`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+      } catch {
+        setFormError("Couldn't reach the server, so the contact wasn't saved. Your note is still here: check your connection and try again.")
+        return
+      }
       if (response.status === 201) {
         toast.success(`Contact logged for ${fullName(student)}`)
         onSaved()
@@ -96,19 +128,23 @@ export function LogContactForm({
       }
       const body = (await response.json().catch(() => null)) as { error?: { message?: string; fields?: NoteFieldErrors } } | null
       if (body?.error?.fields) setErrors(body.error.fields)
-      toast.error(body?.error?.message ?? "The contact couldn't be saved. Try again.")
+      setFormError(body?.error?.message ?? `The contact couldn't be saved (error ${response.status}). Your note is still here; try again.`)
     })
   }
-
-  // D19: warn, don't block, when the channel goes against what the student asked for.
-  const conflictsWithPreference =
-    preferred && (values.contact_type === "Phone" || values.contact_type === "Email") && values.contact_type !== preferred
-  // D18: suggest marking the note sensitive; the advisor decides.
-  const sensitiveTerms = values.is_sensitive ? [] : findSensitiveTerms(values.note_text)
 
   return (
     <form onSubmit={onSubmit} noValidate className="flex min-h-0 flex-1 flex-col">
       <div className="flex flex-1 flex-col gap-5 overflow-y-auto p-4">
+        {current && (
+          <div className="flex gap-2 rounded-md border border-azurite/30 bg-cloud p-3 text-[13px] leading-relaxed">
+            <Info className="mt-0.5 size-4 shrink-0 text-azurite" aria-hidden="true" />
+            <p>
+              <span className="font-medium text-navy">Contact preference: {preferenceHeading(current)}.</span>
+              {current.details && <> &ldquo;{current.details}&rdquo;</>}
+            </p>
+          </div>
+        )}
+
         <div className="grid grid-cols-2 gap-3">
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="contact_date">Contact date</Label>
@@ -124,14 +160,14 @@ export function LogContactForm({
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="contact_type">Contact type</Label>
-            <Select items={TYPE_ITEMS} value={values.contact_type} onValueChange={(v) => v && update("contact_type", v)}>
+            <Select items={TYPE_ITEMS} value={values.contact_type || null} onValueChange={(v) => v && update("contact_type", v as string)}>
               <SelectTrigger
                 id="contact_type"
                 className="w-full bg-card"
                 aria-invalid={Boolean(errors.contact_type) || undefined}
-                aria-describedby={conflictsWithPreference ? "preference-warning" : undefined}
+                aria-describedby={errors.contact_type ? "contact_type-error" : undefined}
               >
-                <SelectValue />
+                <SelectValue placeholder="How it happened" />
               </SelectTrigger>
               <SelectContent>
                 {CONTACT_TYPES.map((t) => (
@@ -144,20 +180,6 @@ export function LogContactForm({
             <FieldError id="contact_type-error" message={errors.contact_type} />
           </div>
         </div>
-
-        {conflictsWithPreference && (
-          <p
-            id="preference-warning"
-            role="status"
-            className="flex gap-2 rounded-md border border-amber/50 bg-caliche/60 p-3 text-[13px] leading-relaxed"
-          >
-            <TriangleAlert className="mt-0.5 size-4 shrink-0 text-brick" aria-hidden="true" />
-            <span>
-              {student.first_name} asked to be contacted by <strong>{preferred?.toLowerCase()}</strong> only: &ldquo;
-              {student.contact_preference?.text}&rdquo;
-            </span>
-          </p>
-        )}
 
         <div className="flex flex-col gap-1.5">
           <div className="flex items-baseline justify-between">
@@ -188,6 +210,32 @@ export function LogContactForm({
           <FieldError id="note_text-error" message={errors.note_text} />
         </div>
 
+        {stated && (
+          <div className="flex items-start gap-2 rounded-md border border-border bg-muted/40 p-3">
+            <Checkbox
+              id="save_preference"
+              checked={savePreference}
+              onCheckedChange={(checked) => {
+                setSavePreference(checked === true)
+                onDirtyChange(true)
+              }}
+              aria-describedby="save_preference-help"
+              className="mt-0.5"
+            />
+            <div className="flex flex-col gap-0.5">
+              <Label htmlFor="save_preference">
+                Save as {student.first_name}&apos;s contact preference: {preferenceHeading(stated)}
+              </Label>
+              <p id="save_preference-help" className="text-[13px] text-muted-foreground">
+                This note reads like a contact preference.
+                {current
+                  ? ` It would replace the current one (${preferenceHeading(current)}${current.stated_on ? `, from ${formatDate(current.stated_on)}` : ""}).`
+                  : " It would show in Before you reach out and here."}
+              </p>
+            </div>
+          </div>
+        )}
+
         <div className="flex flex-col gap-1.5">
           <div className="flex items-start gap-2">
             <Checkbox
@@ -210,6 +258,35 @@ export function LogContactForm({
             </p>
           )}
         </div>
+
+        {openFollowUps.length > 0 && (
+          <fieldset className="flex flex-col gap-2">
+            <legend className="mb-1.5 text-sm font-medium">Open follow-ups</legend>
+            {openFollowUps.map((f) => {
+              const id = `completes-${f.note_id}`
+              return (
+                <div key={f.note_id} className="flex items-start gap-2">
+                  <Checkbox
+                    id={id}
+                    checked={completes(f)}
+                    onCheckedChange={(checked) => {
+                      setCompleteChoices((c) => ({ ...c, [f.note_id]: checked === true }))
+                      onDirtyChange(true)
+                    }}
+                    className="mt-0.5"
+                  />
+                  <Label htmlFor={id} className="font-normal">
+                    This contact completes the follow-up due {formatDate(f.date)} (set in {f.note_id})
+                  </Label>
+                </div>
+              )
+            })}
+            <p className="text-[13px] text-muted-foreground">
+              Ticked when this contact is within {COMPLETES_WITHIN_DAYS} days of the follow-up date or after it. Untick it if this
+              contact was about something else.
+            </p>
+          </fieldset>
+        )}
 
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="follow_up_date">
@@ -240,6 +317,11 @@ export function LogContactForm({
         </div>
       </div>
 
+      {formError && (
+        <p role="alert" className="mx-4 mb-0 rounded-md border border-signal/40 bg-signal/5 p-3 text-[13px] font-medium text-signal">
+          {formError}
+        </p>
+      )}
       <div className="flex justify-end gap-2 border-t border-border bg-card p-4">
         <Button type="button" variant="outline" onClick={onCancel} disabled={pending}>
           Cancel

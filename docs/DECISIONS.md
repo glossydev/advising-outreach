@@ -85,12 +85,15 @@ _Fires on sample: 1, N041 (audit 5.1)._
 
 _Fires on sample: 1, N041 (audit 5.2)._
 
-**D19 · `contact_preference_in_text` · warning, one-click fix.** A stated contact preference ("contact him by phone only", "best reached after 5 pm", "email goes to a shared family account").
-- The suggestion saves it as the student's contact preference: channel, quoted sentence, source note.
-- The preference shows on the student's page.
-- Logging a contact by a different channel shows a warning.
+**D19 · `contact_preference_in_text` · warning, one-click fix (or info).** A stated contact preference ("contact him by phone only", "prefers email", "best reached after 5 pm", "do not call").
+- The suggestion saves it as the student's **contact preference** (P9). It never touches the note's `contact_type`, which records how that contact happened.
+- The detector tells three things apart, so the suggestion never claims more than the note says: a **restriction** ("by phone only", "email-only"), a **preference** ("prefers email"), and **other guidance** with no channel ("best reached after 5 pm"). How a contact happened ("contacted the student by email") is not matched.
+- **Only the newest statement per student in a file** gets the suggestion. Older ones are info ("row N states a newer one").
+- **It never replaces a newer preference already on the record.** That case is info, and the stored one is kept. When saving would replace an older one, the message says which.
+- **Accepting sets a flag, not a value.** At commit, the preference is worked out again from the note's final text, after every other fix (such as removing an SSN). It is SSN-scrubbed again, and the rule's message masks any SSN. The newest-wins and never-older checks run again on the server too.
 
 _Fires on sample: 1, N001. The student's latest contact, N017, was an academic-warning email sent after he asked for phone only (audit 5.3)._
+- _Revised 2026-10-08 after Adam's review and a code review._ The first version saved a "phone only" preference from any "by phone" mention, and kept the newest only within one file. It copied the note's raw sentence, which could carry an SSN past D17's fix. It also made the Log contact form pre-select and warn on the contact type. Adam pointed out the last part is wrong: the type records how the contact happened, not how the student would like to be contacted.
 
 **D20 · `follow_up_date_in_text` · warning, one-click fix.** An explicit month-and-day in note text ("by Oct 15").
 - The suggestion sets the note's follow-up date to the next such date on or after the contact date (2026-10-15).
@@ -114,7 +117,7 @@ _Fires on sample: 0. All 47 students with both agree once dates are normalized (
 
 ### Display and scoring (the smart feature)
 
-**D24 · `no_contact_on_record` · scoring rule.** A student with no notes and no spreadsheet date shows as **"Never contacted"** and ranks at the top of the outreach queue. _Applies to 3 students on sample: S1006, S1018 (High risk), S1040 (audit 4.1)._
+**D24 · `no_contact_on_record` · scoring rule.** A student with no notes and no spreadsheet date shows as **"Never contacted"** and ranks at the top of the outreach queue, after only follow-ups that are due (P8). _Applies to 3 students on sample: S1006, S1018 (High risk), S1040 (audit 4.1)._
 - _Revised 2026-10-08, when the README arrived:_ the first version said "No contact on record", on the grounds that a spreadsheet can't prove a contact never happened. The README defines it: "Blank = never contacted". The data owner's definition wins (G1).
 - S1040's "N/A" is a placeholder rather than a blank. D5 suggests clearing it, after which it means the same thing.
 
@@ -127,9 +130,11 @@ _Fires on sample: 0. All 47 students with both agree once dates are normalized (
 - risk flag;
 - GPA under 2.0 / 2.5;
 - credits below the UA class-standing minimum (fires 0 times on sample);
-- a follow-up date that's overdue or due within 14 days (fires once: N041, due Oct 15).
+- an open follow-up two days out (+10), one day out (+20), or due or overdue (+30, and the top of the queue). See P8. On the sample, N041's Oct 15 follow-up is 10 days out, so it earns nothing yet.
 
 Every factor adds a plain-language reason, and the reasons are shown to advisors verbatim.
+
+**Time since contact counts in steps:** 0 / 6 / 18 / 28 / 35 points from 0 / 14 / 30 / 60 / 90 days. Steps are easy to check by hand, and 30 days matches the Overdue tile. The cost is a cliff at each step (29 days earns 6, 30 days earns 18). A per-day ramp is a one-line change if the advisors would rather. The help pages explain this with a worked example, because Adam asked how the math works.
 
 ### Audit findings with no rule
 
@@ -156,9 +161,9 @@ Every factor adds a plain-language reason, and the reasons are shown to advisors
 **P5: A "Before you reach out" card replaces v0's AI summary card.**
 - v0 showed generated summaries from mock data. The real AI summary was deferred, and a fake one would misrepresent what the tool does.
 - The card lists what an advisor should know before contacting this student, all from decisions already made on the data:
-  - a stated contact preference (D19);
+  - the student's contact preference (D19, P9), with an editor;
   - an unanswered outreach (D25);
-  - a follow-up date (D20);
+  - every open follow-up (D20, P8);
   - sensitive notes (D18);
   - a last contact that has no note behind it (D22);
   - never contacted (D24).
@@ -170,10 +175,10 @@ Every factor adds a plain-language reason, and the reasons are shown to advisors
   - contact types Phone / Email / In person / Zoom;
   - the type defaults to the student's preferred channel when one is saved.
 - **Blocked:** a contact date after today (D8) and an SSN-shaped number (D17), with a message saying why.
-- **Warned, not blocked:**
-  - choosing a channel the student asked not to be contacted by (D19);
-  - note text that mentions sensitive topics, which suggests ticking "Sensitive note" (D18). The advisor decides.
+- **Warned, not blocked:** note text that mentions sensitive topics suggests ticking "Sensitive note" (D18). The advisor decides.
 - **IDs:** new notes continue the dataset's ID pattern (N058, N059, …). _(Claude, 2026-10-08.)_
+- _Revised 2026-10-08 (Adam):_ **the contact type has no default.** It records how this contact happened, so the advisor chooses it. The first version pre-selected the student's preferred channel and warned when another was picked. That nudged advisors to record a phone-only student's email as a phone call. The preference is now shown at the top of the form, for reference only.
+- _Added 2026-10-08:_ **a failed save keeps the draft.** A network error or a server error leaves the form open with everything typed, and says what happened. Before, a network error inside the save crashed the page and lost the note (found by a code review).
 
 **P7: Help pages at `/help`, linked from the bottom of the sidebar.** _(Adam asked for them, 2026-10-08. The details are Claude's.)_
 - **Why:** not in the brief. Adam's reason for asking: writing them means going through every screen, dialog and function, which finds bugs and unfinished features. It did (see the Phase 6 entry in AI_USAGE_LOG).
@@ -182,6 +187,28 @@ Every factor adds a plain-language reason, and the reasons are shown to advisors
 - **Written in Markdown** (`content/help.md`). It is split by headings into sections and topics; anyone can edit it without touching code.
 - **Screenshots are generated, not hand-made.** A Playwright walk through the app (`npm run docs:screenshots`) recreates them, so they can be redone after any UI change. A unit test fails if the help shows a missing image or links to a missing heading.
 - **Accuracy:** every statement was checked against the code, not against memory of it. The first draft had six mismatches; they're listed in AI_USAGE_LOG.
+
+**P8: Follow-ups.** _(Adam, 2026-10-08: the column, the 2-day ramp and "due today goes to the very top". Adam chose "overdue stays at the top, oldest first" and "a checkbox when logging" from options Claude offered.)_
+- **The queue shows the next open follow-up** in its own sortable column, with how far away it is.
+- **A short ramp:** nothing until two days before (+10), then the day before (+20).
+- **On the day, and after, until it's done:** +30, and the student is ranked **above everyone**, including students never contacted. With several, the longest overdue comes first. A follow-up is a promise to get back to someone, so a missed one shouldn't sink below today's.
+- **A follow-up stays open until a contact is logged as completing it.** The Log contact form lists the student's open follow-ups, each with "This contact completes the follow-up due …". It starts ticked when the contact is within 2 days of the follow-up date or after it, and unticked when earlier, so an unrelated early contact doesn't close it by accident. The completing note is recorded on the original (`follow_up_done_by`, migration 0002), and the timeline says which note completed it.
+- **Every open follow-up counts, not just the newest note's.** Before, logging an unrelated note made an open follow-up vanish from the score, and one more than 14 days out wasn't shown anywhere (found by a code review). "Before you reach out" now lists every open follow-up, however far ahead.
+- **Imported follow-ups** (D20) start open. The sample has one, N041's (Oct 15).
+
+**P9: A contact preference field on each student.** _(Adam chose a real, editable field over reading preferences from notes, 2026-10-08.)_
+- **One per student:** channel (phone, email, text, or none), whether it's **only** that way or just **preferred**, details in words, the date it was stated, and the note it came from (or "entered on the student's page").
+- **Three ways in:** the import (D19, accepted by the person importing); logging a contact whose note states one (an unticked "Save as … contact preference" box that says what it would replace); and a small editor on the student's page, which can also remove it. All three check for SSNs, and the server re-checks.
+- **A newer statement replaces an older one.** The import never overwrites a newer preference (D19). The editor and the log form are explicit human choices, so they replace whatever is there, and say so.
+- **Shown where someone is about to reach out:** "Before you reach out", and the top of the Log contact form. It never changes or pre-fills a contact type (P6).
+- **Stored as JSON text on the student** (T2). Preferences saved in the earlier shape are read as the new one, so existing databases (including GDS staging) need no data migration.
+
+**P10: The queue sorts by its first six columns,** like the Students page: Rank, Student, Risk, Last contact, Follow-up and Score. _(Adam asked, 2026-10-08.)_
+- **Rank always shows the outreach order,** whatever the sort, so sorting never hides who's first.
+- **Each column's first click gives the useful order:** highest risk, longest without contact, soonest follow-up, highest score. Students with no follow-up sort last both ways.
+- **The sort lives in the URL,** with the default left out so the plain queue keeps a plain address.
+
+**P11: "Back to" returns to the exact list.** The student page's back link used to fall back to the unfiltered Students page, because `document.referrer` doesn't change on in-app navigation (found by a code review). Each list page now records its full address (filters, sort, page) for the browser tab, and the link says where it goes: "Back to Students" or "Back to Outreach Queue".
 
 ## Technical decisions
 

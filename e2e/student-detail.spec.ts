@@ -15,8 +15,46 @@ test("opens from the directory and shows the student, their history and why they
   const timeline = page.getByRole("region", { name: "Contact timeline" })
   await expect(timeline.getByRole("listitem")).toHaveCount(3)
   await expect(page.getByRole("region", { name: "Outreach priority" })).toContainText("Waiting on a reply since Jun 2")
-  // D19: the phone-only preference from note N001 is on the record.
-  await expect(page.getByRole("region", { name: "Before you reach out" })).toContainText("Contact by phone only")
+  // D19, P9: the phone-only preference from note N001 is on the record.
+  const card = page.getByRole("region", { name: "Before you reach out" })
+  await expect(card).toContainText("Phone only")
+  await expect(card).toContainText("From note N001, Jan 22, 2026")
+})
+
+test("adds, edits and removes a contact preference (P9)", async ({ page }) => {
+  await page.goto("/students/S1001")
+  const card = page.getByRole("region", { name: "Before you reach out" })
+  await card.getByRole("button", { name: "Add a contact preference" }).click()
+  const editor = page.getByRole("dialog", { name: "Contact preference" })
+  await editor.getByRole("button", { name: "Save" }).click()
+  await expect(editor.getByText("Choose a channel or describe the preference.")).toBeVisible()
+
+  await editor.getByRole("combobox", { name: "Preferred channel" }).click()
+  await page.getByRole("option", { name: "Text" }).click()
+  await editor.getByRole("checkbox", { name: "Only this way" }).check()
+  await editor.getByRole("textbox", { name: /Details/ }).fill("After 5 pm on weekdays.")
+  await editor.getByRole("button", { name: "Save" }).click()
+  await expect(card).toContainText("Text only")
+  await expect(card).toContainText("After 5 pm on weekdays.")
+  await expect(card).toContainText("Entered on the student's page, Oct 5, 2026")
+
+  await card.getByRole("button", { name: "Edit contact preference" }).click()
+  await editor.getByRole("button", { name: "Remove preference" }).click()
+  await expect(card).not.toContainText("Text only")
+  await expect(card.getByRole("button", { name: "Add a contact preference" })).toBeVisible()
+})
+
+test("Back to returns to the list as it was, filters and sort included", async ({ page }) => {
+  await page.goto("/students?q=okonkwo&risk=Medium")
+  await page.locator("table tbody tr").first().click()
+  await expect(page).toHaveURL(/\/students\/S1021$/)
+  await page.getByRole("link", { name: "Back to Students" }).click()
+  await expect(page).toHaveURL(/\/students\?q=okonkwo&risk=Medium$/)
+
+  await page.goto("/?sort=name")
+  await page.locator("table tbody tr").first().click()
+  await page.getByRole("link", { name: "Back to Outreach Queue" }).click()
+  await expect(page).toHaveURL(/\/\?sort=name$/)
 })
 
 test("keeps a sensitive note collapsed until someone chooses to read it (D18), with no SSN (D17)", async ({ page }) => {
@@ -25,6 +63,7 @@ test("keeps a sensitive note collapsed until someone chooses to read it (D18), w
   await expect(timeline).toContainText("Sensitive note: hidden")
   await expect(timeline).not.toContainText("counselor")
   await expect(timeline).toContainText("Follow up by Oct 15, 2026")
+  await expect(page.getByRole("region", { name: "Before you reach out" })).toContainText("Follow-up Oct 15, 2026: due in 10 days.")
 
   await timeline.getByRole("button", { name: "Show note" }).click()
   await expect(timeline).toContainText("counselor")

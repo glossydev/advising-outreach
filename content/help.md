@@ -11,7 +11,7 @@ Advising Outreach helps an advising office decide which students to contact next
 
 ### What the app does
 
-- **Outreach Queue** ranks every student by how much they need a call or email right now, and shows the reasons for each ranking.
+- **Outreach Queue** ranks every student by how much they need a call or email right now, and shows the reasons for each ranking. Follow-ups that are due come first.
 - **Students** lets you search and filter the whole caseload.
 - **A student's page** shows their contact history, anything to know before reaching out, and a **Log contact** button.
 - **Import** brings in a spreadsheet. Anything it can't use as it is gets flagged and explained, usually with a fix you can accept in one click.
@@ -60,15 +60,34 @@ The Outreach Queue is the home page. It answers one question: **who should I con
 
 Each row shows:
 
-- **Rank**: the student's place in the queue.
+- **Rank**: the student's place in the outreach order.
 - **Student**: name, student ID and major. Click anywhere on the row to open the student's page.
 - **Risk**: the risk flag set by the advising office (Low, Medium or High).
 - **Last contact**: the date of the most recent contact and how long ago it was. Over 30 days is shown in red.
+- **Follow-up**: the student's next open follow-up and how far away it is. Red when it's due or overdue, brown in the two days before. A dash means none.
 - **Score**: the outreach score, from 0 to 100. See [How the outreach score works](#how-the-outreach-score-works).
 - **Reasons**: why the student scored what they did, in plain words. A **+1** or **+2** chip means there are more reasons. Point at it to see them.
 - **Log contact**: record a contact without leaving the queue.
 
-**Students who have never been contacted always come first**, whatever their score. A first contact is the most overdue kind. After them, students are ordered by score, highest first.
+The queue is ranked in three groups:
+
+1. **A follow-up due today or overdue.** These students come first, whatever their score, the longest overdue at the top. A follow-up is a promise to get back to someone.
+2. **Never contacted.** A first contact is the most overdue kind.
+3. **Everyone else, by score**, highest first.
+
+### Follow-ups at the top
+
+When you log a contact you can set a follow-up date. The student starts climbing the queue two days before it, and on the day they go to the very top. They stay there until a contact is logged that completes the follow-up. See [Open follow-ups](#open-follow-ups).
+
+![A follow-up due today at the top](/help/screens/queue-follow-up-due.jpg "Maya Patel's follow-up is due today, so she's ranked first, above the students never contacted.")
+
+### Sorting the queue
+
+Click the **Rank**, **Student**, **Risk**, **Last contact**, **Follow-up** or **Score** heading to sort by that column. Click it again to reverse the order. Each column starts with the order you'd most likely want: highest risk first, longest without contact first, soonest follow-up first, highest score first.
+
+**Rank always shows the outreach order**, whatever the table is sorted by, so you can see who's first even in a list sorted by name. Click **Rank** to go back to the outreach order. The sort is saved in the page address, like the filters.
+
+![The queue sorted by follow-up date](/help/screens/queue-sorted.jpg "Sorted by follow-up: Camila Vargas has the only open follow-up. Her rank in the outreach order is unchanged.")
 
 ### The summary tiles
 
@@ -120,13 +139,32 @@ The score adds up points for things that make a contact more urgent. Every point
 | GPA below 2.0 | 20 |
 | GPA from 2.0 up to 2.5 | 10 |
 | Waiting on a reply from the student | 15 |
-| Follow-up date has passed | 15 |
-| Follow-up due within 14 days | 10 |
+| Follow-up due today, or overdue (also moves the student to the top) | 30 |
+| Follow-up due tomorrow | 20 |
+| Follow-up due in 2 days | 10 |
 | Credits below the usual minimum for the class year | 6 |
 
 Only one line from each group counts. For example, a student not contacted in 120 days gets 35 points for that, not 35 + 28 + 18 + 6.
 
 ![The Outreach priority card](/help/screens/card-outreach-priority.jpg "The Outreach priority card on a student's page lists each reason and its points.")
+
+### A worked example
+
+Jordan Whitfield (S1002), on Oct 5, 2026:
+
+| Reason | Points |
+| --- | --- |
+| Last contact Jun 2: 125 days, so the 90-days-or-more step | 35 |
+| High risk flag | 30 |
+| GPA 2.15, so the from-2.0-up-to-2.5 step | 10 |
+| His last note says he still hasn't replied | 15 |
+| **Score** | **90** |
+
+### Why time since contact goes in steps
+
+Days since contact count in steps rather than a point a day: nothing for the first 13 days, then 6, 18, 28 and 35 at 14, 30, 60 and 90 days. Steps are easy to check by hand, and 30 days is the line the **Overdue** tile uses too.
+
+The cost is a jump at each step: a student at 29 days has 6 points for it, and at 30 days, 18. The weights are tunable: in a real office they would be set with the advisors.
 
 ### Which date counts as the last contact
 
@@ -140,7 +178,9 @@ If the newest note says the office is waiting to hear back, for example "no repl
 
 ### Follow-up dates
 
-A contact can have a follow-up date. When the newest contact's follow-up date is within the next 14 days, the student gets 10 points. Once the date has passed, they get 15. The follow-up also shows in **Before you reach out**.
+A contact can have a follow-up date. The ramp is short on purpose: nothing until two days before, then 10 points, then 20 the day before. On the day, and every day after until it's done, the student gets 30 points and is ranked above everyone else.
+
+Every open follow-up counts, not just the one on the newest note: logging an unrelated contact doesn't make a follow-up disappear. A follow-up is done only when a contact is logged as completing it. See [Open follow-ups](#open-follow-ups).
 
 ### Credits behind class standing
 
@@ -194,11 +234,13 @@ Open a student from the queue, the Students page or the search.
 
 ![A student's page](/help/screens/student.jpg "Jordan Whitfield's page: the timeline on the left, and what to know before reaching out on the right.")
 
-The header shows the student's name, ID, email (click it to write an email), class year and risk flag, with the **Log contact** button on the right. **Back to list** returns to the page you came from, with its filters.
+The header shows the student's name, ID, email (click it to write an email), class year and risk flag, with the **Log contact** button on the right. **Back to Students** or **Back to Outreach Queue** returns to the list you came from, exactly as you left it: filters, sort and page.
 
 ### Contact timeline
 
-Every contact on record, newest first. Each entry shows the date, how the contact was made (phone, email, in person or Zoom), the advisor and the note ID, then the note itself. Follow-up dates show as a tag under the note.
+Every contact on record, newest first. Each entry shows the date, how the contact was made (phone, email, in person or Zoom), the advisor and the note ID, then the note itself. A follow-up date shows as a tag under the note. Once a later contact completes it, the tag says which note did.
+
+![A completed follow-up in the timeline](/help/screens/timeline-follow-up-done.jpg "N059 completed the follow-up set in N041.")
 
 Long histories show the newest few contacts. Click **Show earlier contacts** to see the rest.
 
@@ -206,13 +248,29 @@ Long histories show the newest few contacts. Click **Show earlier contacts** to 
 
 The first card on the right gathers what an advisor should know before contacting the student:
 
-- **Contact preferences** found in earlier notes, such as "contact by phone only", with the note quoted.
+- **Contact preference**: how the student wants to be contacted, with where it came from. See [Contact preference](#contact-preference).
 - **Waiting on a reply**: when the last contact is still unanswered, and for how long.
-- **Follow-ups** due soon or overdue.
+- **Every open follow-up**, with its date and how far away it is, however far ahead.
 - **Sensitive notes** on file, which stay collapsed until someone opens them.
 - **Never contacted**, when this would be the first outreach.
 
 ![Before you reach out](/help/screens/card-before-you-reach-out.jpg "Jordan asked to be contacted by phone only, and hasn't replied since June 2.")
+
+### Contact preference
+
+Each student can have one contact preference: a channel (phone, email or text), whether it's the **only** way to reach them or just the one they **prefer**, and details such as "best reached after 5 pm". It's shown in **Before you reach out** and at the top of the Log contact form.
+
+A preference gets onto a student's record in three ways:
+
+- **From an import**, when a note states one and the person importing accepts it. See the D19 rule in the [Import rules reference](#import-rules-reference).
+- **When you log a contact** whose note states one, if you tick **Save as … contact preference**. See [Fill in the details](#fill-in-the-details).
+- **By hand**: click **Add a contact preference** in Before you reach out, or **Edit** next to the current one. **Remove preference** takes it off the record. The note it came from stays in the timeline.
+
+A newer preference replaces an older one. The card says where the current one came from: a note and its date, or the student's page.
+
+![The contact preference editor](/help/screens/preference-editor.jpg "Editing Jordan Whitfield's phone-only preference.")
+
+A preference never changes how a contact is recorded. The **Contact type** on a note always says how that contact actually happened.
 
 ### Outreach priority
 
@@ -246,7 +304,7 @@ When the import found another record that may be the same student, a banner at t
 
 ### Students never contacted
 
-A student with no notes and no last contact date in the spreadsheet shows an empty timeline with a **Log contact** button, and **Before you reach out** says this would be the first outreach. These students are always at the top of the Outreach Queue.
+A student with no notes and no last contact date in the spreadsheet shows an empty timeline with a **Log contact** button, and **Before you reach out** says this would be the first outreach. These students come near the top of the Outreach Queue: only follow-ups that are due come before them.
 
 ![A student never contacted](/help/screens/student-never-contacted.jpg "Mateo Alvarez has never been contacted.")
 
@@ -264,31 +322,42 @@ Record every call, email, meeting or Zoom with a student, so the next advisor kn
 
 Click **Log contact** on a student's page, or on the student's row in the Outreach Queue. The form opens on the right.
 
-![The Log contact form](/help/screens/log-contact.jpg "The Log contact form for Jordan Whitfield.")
+![The Log contact form](/help/screens/log-contact.jpg "The Log contact form for Jordan Whitfield, with his contact preference shown at the top.")
 
 ### Fill in the details
 
 - **Contact date**: today by default. Pick an earlier date if you're catching up. Future dates aren't allowed.
-- **Contact type**: Phone, Email, In person or Zoom. If the student has said how they want to be contacted, that's chosen for you.
+- **Contact type** (required): how this contact happened: Phone, Email, In person or Zoom. Nothing is chosen for you, not even the student's preferred channel. If a phone-only student emailed you, the contact type is Email.
 - **Note** (required): what was discussed and what happens next, up to 5,000 characters.
+- **Save as … contact preference**: appears when the note reads like a contact preference ("prefers email", "phone only", "best reached after 5 pm"). Tick it to make that the student's [contact preference](#contact-preference). It replaces the current one, and the form says which.
 - **Sensitive note**: tick this for anything that should stay collapsed in the timeline. See [Sensitive notes](#sensitive-notes).
-- **Follow-up date** (optional): when to check in again. It feeds the outreach score as the date gets close.
+- **Open follow-ups**: see [Open follow-ups](#open-follow-ups).
+- **Follow-up date** (optional): when to check in again. The student climbs the queue two days before it, and goes to the top on the day.
 - **Advisor**: the advisor chosen in the top bar. Under All advisors, it's the student's assigned advisor.
+
+### Open follow-ups
+
+If the student has follow-ups that aren't done yet, the form lists each one with **This contact completes the follow-up due …**. Tick it when this contact is the follow-up.
+
+It starts ticked when the contact date is within two days of the follow-up date, or after it, and unticked when it's earlier. An early, unrelated contact ("sent the campus map") doesn't close a follow-up by accident. Change the tick whenever it's wrong.
+
+![An open follow-up and a stated preference](/help/screens/log-contact-follow-up.jpg "Camila's follow-up is ticked as completed, and her note's preference for texts is ticked to save.")
 
 ### Checks before saving
 
 The form checks a few things as you go:
 
 - **Social Security numbers are refused.** A note with something shaped like an SSN can't be saved. Remove the number first.
-- **Contact preferences.** If you choose a contact type the student asked you not to use, a warning quotes their request. You can still save, for example if the student contacted you that way.
+- **Contact type and note are required**, and the form points to whichever is missing.
 - **Sensitive words.** If the note mentions mental health, medical matters, a request for privacy or a government ID, you're prompted to consider ticking **Sensitive note**.
-- **Missing note.** A note is required, and the form points to the field.
 
-![The checks in action](/help/screens/log-contact-checks.jpg "Email chosen for a student who asked for phone only, and a note containing an SSN (covered in this picture).")
+![The checks in action](/help/screens/log-contact-checks.jpg "A note containing an SSN, which can't be saved (the note is covered in this picture).")
+
+If saving fails, for example because the connection dropped, the form stays open with everything you typed and says what happened. Click **Save contact** again to retry.
 
 ### After you save
 
-The form closes, a confirmation appears at the bottom right, and the new contact is at the top of the timeline. The student's score, reasons and place in the queue update straight away.
+The form closes, a confirmation appears at the bottom right, and the new contact is at the top of the timeline. The student's score, reasons and place in the queue update straight away, and so do any follow-up you completed and any preference you saved.
 
 ![A contact saved](/help/screens/log-contact-saved.jpg "The new contact is at the top of the timeline. The score dropped from 90 to 40.")
 
@@ -440,7 +509,7 @@ Each rule checks for one kind of problem. Its code (D1 to D23) matches the decis
 | D16 | Note for an unknown student | Blocking | Suggests the closest student ID when there is one. |
 | D17 | Social Security number in a note | Blocking | Replaces the number with "[SSN removed]". SSNs are never stored. |
 | D18 | Sensitive note | Blocking | Mentions mental health, medical matters, a request for privacy or a government ID. Decide whether the note is sensitive. |
-| D19 | Contact preference in a note | Warning | "Contact by phone only" and the like. Saves it to the student's record, where it shows in Before you reach out and in the Log contact form. |
+| D19 | Contact preference in a note | Warning or info | "By phone only", "prefers email", "best reached after 5 pm". Offers to save it as the student's [contact preference](#contact-preference); the note's contact type is never changed. Only the newest statement per student can be saved, and never over a newer preference already on the record (info). A note saying how a contact happened ("emailed the student") isn't a preference. |
 | D20 | Follow-up date in a note | Warning | "Follow up by Oct 15". Sets it as the note's follow-up date. |
 | D21 | Same note twice in the file | Warning | The same text under a different note ID. Leave the copy out. |
 | D22 | Spreadsheet and notes disagree on last contact | Info | The later date is used. See [Which date counts as the last contact](#which-date-counts-as-the-last-contact). |
@@ -485,7 +554,7 @@ A note marked sensitive stays collapsed in the timeline until someone chooses to
 
 ### Contact preferences
 
-When a note says how a student wants to be contacted, the preference is saved to their record. It shows at the top of **Before you reach out**, is chosen by default in the Log contact form, and triggers a warning if another contact type is picked.
+A student's [contact preference](#contact-preference) is shown wherever someone is about to reach out: in **Before you reach out** and at the top of the Log contact form. A preference saved from a note gets the same SSN check as the note itself, so it can never hold a number the note wasn't allowed to keep.
 
 ## Phones and small screens
 
@@ -501,7 +570,15 @@ The app works on a phone. The sidebar becomes a menu button at the top left, and
 
 ### Why is a student with a lower score above one with a higher score?
 
-Students who have never been contacted are always listed first, whatever their score. A first contact is the most overdue kind. Within each group, the higher score comes first.
+The queue ranks in groups before it looks at scores. Follow-ups due today or overdue come first, then students who have never been contacted, then everyone else. Within the last group, the higher score comes first. If you've sorted the table by another column, click **Rank** to go back to the outreach order.
+
+### How do I mark a follow-up as done?
+
+Log the contact, and tick **This contact completes the follow-up** in the form. The follow-up stays open until you do, even if other contacts are logged in between. See [Open follow-ups](#open-follow-ups).
+
+### How do I change a student's contact preference?
+
+On the student's page, click **Edit** next to it in **Before you reach out**, or **Add a contact preference** if there isn't one. You can also tick **Save as … contact preference** when the note you're logging states a new one. See [Contact preference](#contact-preference).
 
 ### Why doesn't the Last contact date match the spreadsheet?
 
@@ -533,5 +610,6 @@ Everyone using this copy of the app. There are no personal accounts in this prot
 | --- | --- |
 | Ctrl+K or ⌘K | Search for a student from any page |
 | ↑ and ↓, then Enter | Move through the Students table and open a student |
+| Tab to a column heading, then Enter | Sort the queue or the Students table by that column |
 | Esc | Close the search, a form or a window |
 | / | Search the help, on this page |

@@ -1,9 +1,24 @@
 import Link from "next/link"
-import { CalendarClock, Hourglass, Lock, MessageCircleWarning, Phone, SearchCheck, TriangleAlert, UserRoundX, Users } from "lucide-react"
+import {
+  CalendarClock,
+  Hourglass,
+  Lock,
+  Mail,
+  MessageCircleWarning,
+  MessageSquareText,
+  Phone,
+  SearchCheck,
+  Smartphone,
+  TriangleAlert,
+  UserRoundX,
+  Users,
+} from "lucide-react"
 import { DaysSince } from "@/components/shared/contact-recency"
-import type { ContactNote, Student, StudentDataNote } from "@/lib/types"
-import { NO_CONTACT_LABEL, formatDate } from "@/lib/format"
+import { preferenceHeading } from "@/lib/contact-preference"
+import type { ContactNote, ContactPreference, Student, StudentDataNote } from "@/lib/types"
+import { NO_CONTACT_LABEL, describeFollowUp, formatDate } from "@/lib/format"
 import { cn } from "@/lib/utils"
+import { ContactPreferenceEditor } from "./contact-preference-editor"
 
 export function DetailCard({
   title,
@@ -107,7 +122,9 @@ export function OutreachPriorityCard({ student }: { student: Student }) {
       )}
       <p className="text-[13px] leading-relaxed text-muted-foreground">
         Points for time since contact, the risk flag, GPA, credits, follow-ups and unanswered outreach, capped at 100.
-        {student.no_contact_on_record && " Students who have never been contacted are listed first in the queue."} Not a prediction.
+        {student.follow_up_due && " A follow-up due today or overdue puts the student at the top of the queue."}
+        {student.no_contact_on_record && " Students never contacted come next in the queue, after follow-ups that are due."} Not a
+        prediction.
       </p>
     </DetailCard>
   )
@@ -122,27 +139,34 @@ function Item({ icon: Icon, tone = "default", children }: { icon: typeof Phone; 
   )
 }
 
+const CHANNEL_ICONS = { Phone, Email: Mail, Text: Smartphone } as const
+
+/** Where a preference came from, in a few words. */
+export function preferenceSource(pref: ContactPreference): string {
+  const when = pref.stated_on ? formatDate(pref.stated_on) : null
+  if (pref.source_note_id) return `From note ${pref.source_note_id}${when ? `, ${when}` : ""}`
+  return `Entered on the student's page${when ? `, ${when}` : ""}`
+}
+
 /**
- * The things worth knowing before contacting this student, pulled from decisions made on their
- * data: a stated contact preference (D19), an unanswered outreach (D25), a follow-up date (D20),
- * sensitive notes (D18) and where the last-contact date comes from (D22, D24).
+ * The things worth knowing before contacting this student: their contact preference (P9), an
+ * unanswered outreach (D25), every open follow-up (P8), sensitive notes (D18) and where the
+ * last-contact date comes from (D22, D24).
  */
 export function BeforeYouReachOutCard({ student, notes }: { student: Student; notes: ContactNote[] }) {
   const pref = student.contact_preference
   const waiting = student.outreach_reasons.find((r) => r.rule === "waiting_on_student")
-  const followUp = student.outreach_reasons.find((r) => r.rule === "follow_up")
   const sensitive = notes.filter((n) => n.is_sensitive).length
   const items: React.ReactNode[] = []
 
   if (pref) {
     items.push(
-      <Item key="pref" icon={Phone} tone="warn">
-        <p className="font-medium text-navy">
-          {pref.channel ? `Contact by ${pref.channel.toLowerCase()} only` : "Stated contact preference"}
-        </p>
-        <p className="text-[13px] text-muted-foreground">
-          &ldquo;{pref.text}&rdquo; ({pref.note_id}
-          {pref.noted_on ? `, ${formatDate(pref.noted_on)}` : ""})
+      <Item key="pref" icon={pref.channel ? CHANNEL_ICONS[pref.channel] : MessageSquareText} tone="warn">
+        <p className="font-medium text-navy">{preferenceHeading(pref)}</p>
+        {pref.details && <p className="text-[13px] text-muted-foreground">&ldquo;{pref.details}&rdquo;</p>}
+        <p className="flex flex-wrap items-center gap-x-2 text-[12px] text-muted-foreground">
+          {preferenceSource(pref)}
+          <ContactPreferenceEditor studentId={student.student_id} firstName={student.first_name} preference={pref} />
         </p>
       </Item>,
     )
@@ -155,7 +179,17 @@ export function BeforeYouReachOutCard({ student, notes }: { student: Student; no
     )
   }
   if (waiting) items.push(<Item key="wait" icon={Hourglass} tone="warn">{waiting.text}.</Item>)
-  if (followUp) items.push(<Item key="fu" icon={CalendarClock}>{followUp.text}.</Item>)
+  for (const f of student.open_follow_ups) {
+    const { text, tone } = describeFollowUp(f.date)
+    items.push(
+      <Item key={`fu-${f.note_id}`} icon={CalendarClock} tone={tone === "later" ? "default" : "warn"}>
+        <p className={cn(tone !== "later" && "font-medium text-navy")}>
+          Follow-up {formatDate(f.date)}: {text.charAt(0).toLowerCase() + text.slice(1)}.
+        </p>
+        <p className="text-[12px] text-muted-foreground">Set in note {f.note_id}. Logging a contact can mark it done.</p>
+      </Item>,
+    )
+  }
   if (student.last_contact_source === "spreadsheet" && student.last_contact_date) {
     items.push(
       <Item key="sheet" icon={MessageCircleWarning}>
@@ -178,9 +212,10 @@ export function BeforeYouReachOutCard({ student, notes }: { student: Student; no
       ) : (
         <p className="flex gap-2 text-muted-foreground">
           <SearchCheck className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
-          No preferences, open follow-ups or unanswered outreach on record.
+          No contact preference, open follow-ups or unanswered outreach on record.
         </p>
       )}
+      {!pref && <ContactPreferenceEditor studentId={student.student_id} firstName={student.first_name} preference={null} />}
     </DetailCard>
   )
 }

@@ -59,7 +59,15 @@ describe.each(targets)("sample data import on $name", ({ url }) => {
     expect(n041.note_text).toContain("[SSN removed]")
 
     const student = (id: string) => db.selectFrom("students").selectAll().where("student_id", "=", id).executeTakeFirstOrThrow()
-    expect(JSON.parse((await student("S1002")).contact_preference!)).toMatchObject({ channel: "Phone", note_id: "N001" })
+    expect(JSON.parse((await student("S1002")).contact_preference!)).toMatchObject({
+      channel: "Phone",
+      only: true,
+      stated_on: "2026-01-22",
+      source_note_id: "N001",
+    })
+    // The preference is saved on the student; N001's contact type stays as the CSV has it.
+    const n001 = await db.selectFrom("contact_notes").select("contact_type").where("note_id", "=", "N001").executeTakeFirstOrThrow()
+    expect(n001.contact_type).toBe("Phone")
     expect((await student("S1050")).possible_duplicate_of).toBe("S1021")
     expect((await student("S1040")).source_last_contact_date).toBeNull()
     expect((await student("S1003")).source_last_contact_date).toBe("2026-08-25")

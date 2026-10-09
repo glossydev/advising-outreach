@@ -1,4 +1,6 @@
 import { OVERDUE_DAYS, TODAY_ISO } from "@/lib/config"
+import { parsePreference } from "@/lib/contact-preference"
+import { QUEUE_SORT_DEFAULT_DIR } from "@/lib/search-params"
 import type { Db } from "@/lib/db/client"
 import type { ContactNoteRow, StudentRow } from "@/lib/db/types"
 import { fieldLabel } from "@/lib/import/fields"
@@ -7,11 +9,13 @@ import { compareOutreach, scoreStudent } from "@/lib/scoring"
 import type {
   ClassYear,
   ContactNote,
-  ContactPreference,
   ContactType,
   OutreachQueueFilters,
   OutreachStats,
+  QueueSortKey,
+  QueueStudent,
   RiskFlag,
+  SortDirection,
   Student,
   StudentDataNote,
   StudentFilters,
@@ -37,18 +41,10 @@ export function toContactNote(row: ContactNoteRow): ContactNote {
     advisor: row.advisor,
     note_text: row.note_text,
     follow_up_date: row.follow_up_date,
+    follow_up_done_by: row.follow_up_done_by ?? null,
     is_sensitive: Number(row.is_sensitive) === 1,
     source: row.source === "app" ? "app" : "import",
     created_at: row.created_at,
-  }
-}
-
-function parsePreference(json: string | null): ContactPreference | null {
-  if (!json) return null
-  try {
-    return JSON.parse(json) as ContactPreference
-  } catch {
-    return null
   }
 }
 
@@ -94,7 +90,13 @@ function derive({ rows, notesByStudent }: Loaded, today: string): Student[] {
     const credits = Number(row.credits_earned)
     const outreach = scoreStudent(
       { ...row, gpa, credits_earned: credits },
-      notes.map((n) => ({ note_id: n.note_id, contact_date: n.contact_date, note_text: n.note_text, follow_up_date: n.follow_up_date })),
+      notes.map((n) => ({
+        note_id: n.note_id,
+        contact_date: n.contact_date,
+        note_text: n.note_text,
+        follow_up_date: n.follow_up_date,
+        follow_up_done_by: n.follow_up_done_by,
+      })),
       today,
     )
     const linkIds = [...(row.possible_duplicate_of ? [row.possible_duplicate_of] : []), ...(linkedTo.get(row.student_id) ?? [])]
@@ -117,6 +119,8 @@ function derive({ rows, notesByStudent }: Loaded, today: string): Student[] {
       outreach_score: outreach.score,
       outreach_reasons: outreach.reasons,
       contact_preference: parsePreference(row.contact_preference),
+      open_follow_ups: outreach.openFollowUps,
+      follow_up_due: outreach.followUpDue,
       possible_duplicates: [...new Set(linkIds)].map((id) => {
         const other = byId.get(id)
         return { student_id: id, name: other ? fullName(other) : id }
@@ -182,17 +186,65 @@ export async function listStudents(db: Db, filters: StudentFilters = {}, today =
   return result.sort((a, b) => (filters.dir === "desc" ? -sorter(a, b) : sorter(a, b)) || byName(a, b))
 }
 
-/** The ranked outreach queue: never contacted first, then by score (D24). */
-export async function getOutreachQueue(db: Db, filters: OutreachQueueFilters = {}, today = TODAY_ISO): Promise<Student[]> {
-  const ranked = derive(await load(db), today)
+/** Ascending order for each queue column. Missing follow-ups always sort last; ties fall back to rank. */
+function compareQueue(key: QueueSortKey, dir: SortDirection) {
+  const sign = dir === "desc" ? -1 : 1
+  return (a: QueueStudent, b: QueueStudent): number => {
+    let result = 0
+    switch (key) {
+      case "name":
+        result = sortName(a).localeCompare(sortName(b))
+        break
+      case "risk":
+        result = (RISK_ORDER[b.risk_flag] ?? 9) - (RISK_ORDER[a.risk_flag] ?? 9)
+        break
+      case "last_contact":
+        // Never contacted is the longest without contact, so it comes first when ascending.
+        result = (a.last_contact_date ?? "").localeCompare(b.last_contact_date ?? "")
+        break
+      case "follow_up": {
+        const fa = a.open_follow_ups[0]?.date
+        const fb = b.open_follow_ups[0]?.date
+        if (!fa || !fb) return fa ? -1 : fb ? 1 : a.rank - b.rank
+        result = fa.localeCompare(fb)
+        break
+      }
+      case "score":
+        result = a.outreach_score - b.outreach_score
+        break
+    }
+    return sign * result || a.rank - b.rank
+  }
+}
+
+/**
+ * The outreach queue (P8, D24): follow-ups due today or overdue first, then students never
+ * contacted, then by score. Each row keeps its rank in that order when the table is sorted by
+ * another column.
+ */
+export async function getOutreachQueue(db: Db, filters: OutreachQueueFilters = {}, today = TODAY_ISO): Promise<QueueStudent[]> {
+  const ranked: QueueStudent[] = derive(await load(db), today)
     .filter((s) => !filters.advisor || s.advisor === filters.advisor)
     .filter((s) => !filters.risks?.length || filters.risks.includes(s.risk_flag))
     .filter((s) => !filters.class_years?.length || filters.class_years.includes(s.class_year))
     .filter((s) => !filters.min_days || s.no_contact_on_record || (s.days_since_contact ?? 0) >= filters.min_days)
-    .map((s) => ({ s, sortName: sortName(s), outreach: { score: s.outreach_score, noContactOnRecord: s.no_contact_on_record } }))
+    .map((s) => ({
+      s,
+      sortName: sortName(s),
+      outreach: {
+        score: s.outreach_score,
+        noContactOnRecord: s.no_contact_on_record,
+        followUpDue: s.follow_up_due,
+        openFollowUps: s.open_follow_ups,
+      },
+    }))
     .sort(compareOutreach)
-    .map((x) => x.s)
-  return filters.limit ? ranked.slice(0, filters.limit) : ranked
+    .map((x, i) => ({ ...x.s, rank: i + 1 }))
+  const limited = filters.limit ? ranked.slice(0, filters.limit) : ranked
+  const key = filters.sort ?? "rank"
+  return key === "rank" && filters.dir !== "desc"
+    ? limited
+    : [...limited].sort(compareQueue(key, filters.dir ?? QUEUE_SORT_DEFAULT_DIR[key]))
 }
 
 export async function getOutreachStats(db: Db, advisor?: string | null, today = TODAY_ISO): Promise<OutreachStats> {

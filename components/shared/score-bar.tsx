@@ -4,7 +4,7 @@ import { cn } from "@/lib/utils"
 export function ScoreBar({ score, className }: { score: number; className?: string }) {
   return (
     <div className={cn("flex items-center gap-2", className)}>
-      <div className="h-1.5 w-16 overflow-hidden rounded-full bg-cloud" aria-hidden="true">
+      <div className="h-1.5 w-12 overflow-hidden rounded-full bg-cloud" aria-hidden="true">
         <div className="h-full rounded-full bg-azurite" style={{ width: `${Math.min(100, Math.max(0, score))}%` }} />
       </div>
       <span className="w-7 text-right font-medium tabular-nums text-navy">

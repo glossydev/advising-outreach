@@ -1,4 +1,5 @@
 import { TODAY_ISO } from "@/lib/config"
+import { preferenceFromNote } from "@/lib/contact-preference"
 import type { Db } from "@/lib/db/client"
 import type { ContactNote, NewNoteInput, Student } from "@/lib/types"
 import { validateNoteInput } from "@/lib/validation"
@@ -17,8 +18,11 @@ async function nextNoteId(db: Db): Promise<string> {
 
 /**
  * Logs a contact. The same rules as the form, re-checked here because the API is the authority:
- * no future dates, no SSNs, a known contact type. Returns the note and the student's recomputed
- * score, so the caller can show the effect straight away.
+ * no future dates, no SSNs, a known contact type. In the same transaction it can:
+ * - complete open follow-ups the advisor ticked (P8); each must be one of this student's, still open;
+ * - save the preference the note states as the student's contact preference (P9), worked out
+ *   again here from the saved text rather than taken from the browser.
+ * Returns the note and the student's recomputed score, so the caller can show the effect straight away.
  */
 export async function createNote(
   db: Db,
@@ -32,26 +36,58 @@ export async function createNote(
   const errors = validateNoteInput(input, today)
   if (Object.keys(errors).length > 0) throw new ValidationError("The note couldn't be saved. Check the highlighted fields.", errors)
 
+  const completes = [...new Set(input.completes_follow_ups ?? [])]
+  if (completes.length > 0) {
+    const open = await db
+      .selectFrom("contact_notes")
+      .select("note_id")
+      .where("student_id", "=", studentId)
+      .where("note_id", "in", completes)
+      .where("follow_up_date", "is not", null)
+      .where("follow_up_done_by", "is", null)
+      .execute()
+    if (open.length !== completes.length) {
+      throw new ValidationError("A follow-up you marked as completed is already done, or isn't this student's. Reload and try again.", {
+        completes_follow_ups: "Already completed, or not one of this student's follow-ups.",
+      })
+    }
+  }
+
   // Two advisors saving at once could pick the same next ID; the primary key rejects the second, which retries.
   for (let attempt = 0; attempt < 3; attempt++) {
     const note_id = await nextNoteId(db)
+    const note_text = input.note_text.trim()
     try {
-      await db
-        .insertInto("contact_notes")
-        .values({
-          note_id,
-          student_id: studentId,
-          contact_date: input.contact_date,
-          contact_type: input.contact_type,
-          advisor: input.advisor.trim(),
-          note_text: input.note_text.trim(),
-          follow_up_date: input.follow_up_date || null,
-          is_sensitive: input.is_sensitive ? 1 : 0,
-          source: "app",
-          import_id: null,
-          created_at: new Date().toISOString(),
-        })
-        .execute()
+      await db.transaction().execute(async (trx) => {
+        await trx
+          .insertInto("contact_notes")
+          .values({
+            note_id,
+            student_id: studentId,
+            contact_date: input.contact_date,
+            contact_type: input.contact_type,
+            advisor: input.advisor.trim(),
+            note_text,
+            follow_up_date: input.follow_up_date || null,
+            follow_up_done_by: null,
+            is_sensitive: input.is_sensitive ? 1 : 0,
+            source: "app",
+            import_id: null,
+            created_at: new Date().toISOString(),
+          })
+          .execute()
+        if (completes.length > 0) {
+          await trx.updateTable("contact_notes").set({ follow_up_done_by: note_id }).where("note_id", "in", completes).execute()
+        }
+        const preference = input.save_preference ? preferenceFromNote({ note_id, contact_date: input.contact_date, note_text }) : null
+        if (preference) {
+          await trx
+            .updateTable("students")
+            .set({ contact_preference: JSON.stringify(preference), updated_at: new Date().toISOString() })
+            .where("student_id", "=", studentId)
+            .execute()
+        }
+      })
       const row = await db.selectFrom("contact_notes").selectAll().where("note_id", "=", note_id).executeTakeFirstOrThrow()
       const student = await getStudent(db, studentId, today)
       return { note: toContactNote(row), student: student! }

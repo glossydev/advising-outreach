@@ -3,11 +3,23 @@ import type {
   ClassYear,
   LastContactFilter,
   OutreachQueueFilters,
+  QueueSortKey,
   RiskFlag,
   SortDirection,
   StudentFilters,
   StudentSortKey,
 } from "./types"
+
+/** The direction a queue column sorts in when first clicked: the order an advisor would want first. */
+export const QUEUE_SORT_DEFAULT_DIR: Record<QueueSortKey, SortDirection> = {
+  rank: "asc",
+  name: "asc",
+  risk: "desc",
+  last_contact: "asc",
+  follow_up: "asc",
+  score: "desc",
+}
+const QUEUE_SORT_KEYS = Object.keys(QUEUE_SORT_DEFAULT_DIR) as QueueSortKey[]
 
 export type SearchParams = Record<string, string | string[] | undefined>
 
@@ -40,10 +52,15 @@ function list<T extends string>(value: string | string[] | undefined, allowed: r
 
 export function parseQueueParams(params: SearchParams): Omit<OutreachQueueFilters, "advisor"> {
   const minDays = Number(first(params.min_days))
+  const sortParam = first(params.sort) as QueueSortKey | undefined
+  const sort = sortParam && QUEUE_SORT_KEYS.includes(sortParam) ? sortParam : "rank"
+  const dir = first(params.dir)
   return {
     risks: list<RiskFlag>(params.risk, RISK_FLAGS),
     class_years: list<ClassYear>(params.year, CLASS_YEARS),
     min_days: (MIN_DAY_OPTIONS as readonly number[]).includes(minDays) ? minDays : undefined,
+    sort,
+    dir: dir === "asc" || dir === "desc" ? dir : QUEUE_SORT_DEFAULT_DIR[sort],
   }
 }
 

@@ -45,7 +45,7 @@ function subscribe(onChange: () => void) {
 }
 
 const FEATURES = [
-  { icon: ListOrdered, title: "Outreach Queue", text: "Who to contact today, ranked. Students never contacted come first, and every score shows its reasons." },
+  { icon: ListOrdered, title: "Outreach Queue", text: "Who to contact today, ranked. Follow-ups that are due come first, then students never contacted, and every score shows its reasons." },
   { icon: Users, title: "Students", text: "Search and filter the whole caseload by advisor, major, class year, risk and last contact." },
   { icon: UserRound, title: "Student pages", text: "Contact history, what to know before reaching out, and Log contact to record a new one." },
   { icon: FileUp, title: "Import", text: "Bring in a spreadsheet. Problems are flagged and explained, with a suggested fix you can accept." },

@@ -17,12 +17,37 @@ export interface OutreachReason {
   text: string
 }
 
-/** Saved from a note during import (D19). */
+export type PreferredChannel = "Phone" | "Email" | "Text"
+
+/**
+ * How a student wants to be contacted (P9): one per student, on their record. Saved from a note
+ * (by the import, D19, or when logging a contact) or entered on the student's page. A newer
+ * statement replaces an older one.
+ */
 export interface ContactPreference {
-  channel: "Phone" | "Email" | "Text" | null
-  text: string
+  channel: PreferredChannel | null
+  /** True: contact them this way only. False: this way first. */
+  only: boolean
+  /** The student's words or the advisor's summary, e.g. "Best reached after 5 pm". Never holds an SSN. */
+  details: string
+  /** When the student stated it (YYYY-MM-DD). */
+  stated_on: string
+  /** The note it came from; null when entered on the student's page. */
+  source_note_id: string | null
+}
+
+export interface ContactPreferenceInput {
+  channel: PreferredChannel | null
+  only: boolean
+  details: string
+}
+
+export type ContactPreferenceErrors = Partial<Record<keyof ContactPreferenceInput, string>>
+
+/** A follow-up date on a note that hasn't been completed yet (P8). */
+export interface FollowUp {
+  date: string
   note_id: string
-  noted_on: string | null
 }
 
 export interface StudentLink {
@@ -52,9 +77,18 @@ export interface Student {
   outreach_score: number
   outreach_reasons: OutreachReason[]
   contact_preference: ContactPreference | null
+  /** Follow-ups not yet completed, soonest first (P8). */
+  open_follow_ups: FollowUp[]
+  /** The soonest open follow-up is due today or overdue: listed at the very top of the queue (P8). */
+  follow_up_due: boolean
   /** Students linked during import as possibly the same person, in either direction (D15). */
   possible_duplicates: StudentLink[]
   note_count: number
+}
+
+/** A queue row: the student and their place in the outreach order, whatever the table is sorted by. */
+export interface QueueStudent extends Student {
+  rank: number
 }
 
 export interface ContactNote {
@@ -65,6 +99,8 @@ export interface ContactNote {
   advisor: string
   note_text: string
   follow_up_date: string | null
+  /** The note that completed this note's follow-up (P8); null while it's open. */
+  follow_up_done_by: string | null
   is_sensitive: boolean
   /** "import" for notes from a CSV, "app" for notes logged here. */
   source: "import" | "app"
@@ -87,6 +123,10 @@ export interface NewNoteInput {
   note_text: string
   follow_up_date: string | null
   is_sensitive: boolean
+  /** Open follow-ups (by note ID) this contact completes (P8). */
+  completes_follow_ups?: string[]
+  /** Save the preference this note states as the student's contact preference (P9). */
+  save_preference?: boolean
 }
 
 export type NoteFieldErrors = Partial<Record<keyof NewNoteInput, string>>
@@ -118,12 +158,17 @@ export interface StudentFilters {
   dir?: SortDirection
 }
 
+export type QueueSortKey = "rank" | "name" | "risk" | "last_contact" | "follow_up" | "score"
+
 export interface OutreachQueueFilters {
   advisor?: string | null
   risks?: RiskFlag[]
   class_years?: ClassYear[]
   min_days?: number
   limit?: number
+  /** Table order; the rank shown stays the outreach order. Defaults to rank. */
+  sort?: QueueSortKey
+  dir?: SortDirection
 }
 
 export interface OutreachStats {

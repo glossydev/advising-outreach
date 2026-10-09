@@ -5,6 +5,7 @@ import { QueueFilters } from "@/components/queue/queue-filters"
 import { QueueTable } from "@/components/queue/queue-table"
 import { QueueTableSkeleton } from "@/components/queue/queue-skeleton"
 import { EmptyDatabase } from "@/components/shared/empty-database"
+import { RememberListView } from "@/components/shared/remember-list-view"
 import { getAdvisors, getOutreachQueue, getOutreachStats, getRecordCounts } from "@/lib/data"
 import { getSelectedAdvisor } from "@/lib/advisor"
 import { OVERDUE_DAYS } from "@/lib/config"
@@ -23,7 +24,10 @@ export default async function OutreachQueuePage({ searchParams }: { searchParams
 
   return (
     <div className="flex flex-col gap-6">
-      <PageHeader title="Outreach Queue" description={`Who to reach out to today, ranked by outreach score for ${scope}.`} />
+      <PageHeader
+        title="Outreach Queue"
+        description={`Who to reach out to today for ${scope}: follow-ups due first, then students never contacted, then by outreach score.`}
+      />
 
       <StatTileGrid label="Outreach summary">
         <StatTile label="Students assigned" value={stats.assigned} subtext={advisor ? `Assigned to ${advisor}` : "Across all advisors"} />
@@ -56,16 +60,18 @@ export default async function OutreachQueuePage({ searchParams }: { searchParams
         {counts.students === 0 ? (
           <EmptyDatabase />
         ) : (
-          <Suspense key={JSON.stringify({ filters, advisor })} fallback={<QueueTableSkeleton />}>
+          // Sorting isn't in the key: re-sorting keeps the table on screen instead of flashing the skeleton.
+          <Suspense key={JSON.stringify({ ...filters, sort: undefined, dir: undefined, advisor })} fallback={<QueueTableSkeleton />}>
             <QueueResults filters={{ ...filters, advisor }} />
           </Suspense>
         )}
       </section>
+      <RememberListView label="Outreach Queue" />
     </div>
   )
 }
 
 async function QueueResults({ filters }: { filters: Parameters<typeof getOutreachQueue>[0] & { advisor: string | null } }) {
   const students = await getOutreachQueue(filters)
-  return <QueueTable students={students} selectedAdvisor={filters.advisor} />
+  return <QueueTable students={students} selectedAdvisor={filters.advisor} sort={filters.sort} dir={filters.dir} />
 }

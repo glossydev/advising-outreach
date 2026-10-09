@@ -23,6 +23,13 @@ export interface ScoringNote {
   contact_date: string
   note_text: string
   follow_up_date: string | null
+  /** The note that completed this note's follow-up (P8); null or absent while it's open. */
+  follow_up_done_by?: string | null
+}
+
+export interface OpenFollowUp {
+  date: string
+  note_id: string
 }
 
 export interface Reason {
@@ -40,6 +47,10 @@ export interface OutreachScore {
   daysSinceContact: number | null
   /** No notes and no spreadsheet date: listed first in the queue regardless of score (D24). */
   noContactOnRecord: boolean
+  /** Follow-ups not yet completed, soonest first (P8). */
+  openFollowUps: OpenFollowUp[]
+  /** The soonest open follow-up is due today or overdue: listed above everyone else (P8). */
+  followUpDue: boolean
 }
 
 export const WEIGHTS = {
@@ -55,10 +66,13 @@ export const WEIGHTS = {
   gpaBelow2: 20,
   gpaBelow2_5: 10,
   waitingOnStudent: 15,
-  followUpOverdue: 15,
-  followUpDueSoon: 10,
-  /** How far ahead an upcoming follow-up counts as "due soon". */
-  followUpSoonDays: 14,
+  /**
+   * Follow-ups (P8): a short ramp. Nothing until two days before; due today or overdue also lists
+   * the student at the very top of the queue, whatever the score.
+   */
+  followUpInTwoDays: 10,
+  followUpTomorrow: 20,
+  followUpDue: 30,
   creditsBehind: 6,
 } as const
 
@@ -104,12 +118,19 @@ export function scoreStudent(student: ScoringStudent, notes: readonly ScoringNot
     add("waiting_on_student", WEIGHTS.waitingOnStudent, `Waiting on a reply since ${formatShortDate(newest.contact_date, today)} (${waited} days)`)
   }
 
-  if (newest?.follow_up_date) {
-    const until = daysBetween(today, newest.follow_up_date)
-    const due = formatShortDate(newest.follow_up_date, today)
-    if (until < 0) add("follow_up", WEIGHTS.followUpOverdue, `Follow-up was due ${due} (${-until} days ago)`)
-    else if (until <= WEIGHTS.followUpSoonDays)
-      add("follow_up", WEIGHTS.followUpDueSoon, until === 0 ? `Follow-up due today` : `Follow-up due ${due} (in ${until} days)`)
+  // Every open follow-up counts, not just the newest note's: an unrelated contact doesn't close one (P8).
+  const openFollowUps = notes
+    .filter((n) => n.follow_up_date && !n.follow_up_done_by)
+    .map((n) => ({ date: n.follow_up_date!, note_id: n.note_id }))
+    .sort((a, b) => a.date.localeCompare(b.date) || a.note_id.localeCompare(b.note_id))
+  const next = openFollowUps[0]
+  const until = next ? daysBetween(today, next.date) : null
+  if (next && until !== null) {
+    const due = formatShortDate(next.date, today)
+    if (until < 0) add("follow_up", WEIGHTS.followUpDue, `Follow-up was due ${due} (${-until} ${-until === 1 ? "day" : "days"} ago)`)
+    else if (until === 0) add("follow_up", WEIGHTS.followUpDue, "Follow-up due today")
+    else if (until === 1) add("follow_up", WEIGHTS.followUpTomorrow, "Follow-up due tomorrow")
+    else if (until === 2) add("follow_up", WEIGHTS.followUpInTwoDays, `Follow-up due ${due} (in 2 days)`)
   }
 
   const range = classStandingRange(student.class_year)
@@ -123,15 +144,24 @@ export function scoreStudent(student: ScoringStudent, notes: readonly ScoringNot
     lastContact,
     daysSinceContact: days,
     noContactOnRecord: lastContact === null,
+    openFollowUps,
+    followUpDue: until !== null && until <= 0,
   }
 }
 
-/** Queue order: never contacted first (D24), then highest score, then name. */
-export function compareOutreach(
-  a: { outreach: Pick<OutreachScore, "score" | "noContactOnRecord">; sortName: string },
-  b: { outreach: Pick<OutreachScore, "score" | "noContactOnRecord">; sortName: string },
-): number {
+type RankedEntry = { outreach: Pick<OutreachScore, "score" | "noContactOnRecord" | "followUpDue" | "openFollowUps">; sortName: string }
+
+/**
+ * Queue order:
+ * 1. a follow-up due today or overdue, the longest overdue first (P8);
+ * 2. never contacted (D24);
+ * 3. highest score, then name.
+ */
+export function compareOutreach(a: RankedEntry, b: RankedEntry): number {
+  const bothDue = a.outreach.followUpDue && b.outreach.followUpDue
   return (
+    Number(b.outreach.followUpDue) - Number(a.outreach.followUpDue) ||
+    (bothDue ? a.outreach.openFollowUps[0].date.localeCompare(b.outreach.openFollowUps[0].date) : 0) ||
     Number(b.outreach.noContactOnRecord) - Number(a.outreach.noContactOnRecord) ||
     b.outreach.score - a.outreach.score ||
     a.sortName.localeCompare(b.sortName)

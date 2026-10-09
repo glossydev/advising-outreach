@@ -73,24 +73,45 @@ export function findSensitiveTerms(text: string): { label: string; match: string
 
 // ---------- Contact preferences (D19) ----------
 
-const PREFERENCE =
-  /\b((?:by|via) (?:phone|email|text)(?: only)?|(?:phone|email|text)[- ]only|prefers? (?:phone|email|texts?|calls?)|best reached|do not (?:email|call|text)|email goes to)\b/i
+/*
+ * Three kinds of statement, kept apart so a suggestion never claims more than the note says:
+ * - a restriction: "by phone only", "email-only", "only by text";
+ * - a preference: "prefers email", "preferred contact is phone";
+ * - other guidance without a channel: "best reached after 5 pm", "do not call", "email goes to a shared account".
+ * How a contact happened ("contacted the student by email") is not a preference and isn't matched.
+ */
+const CHANNEL = String.raw`(phone|e-?mail|texts?|texting|calls?)`
+const RESTRICTION = new RegExp(String.raw`\b(?:(?:by|via) ${CHANNEL} only|${CHANNEL}[- ]only|only (?:by|via) ${CHANNEL})\b`, "i")
+const PREFERS = new RegExp(String.raw`\b(?:prefers?|preferred)\b[^.;]{0,30}?\b${CHANNEL}\b`, "i")
+const GUIDANCE =
+  /\b(?:best reached|best time to (?:call|reach)|email goes to|(?:do not|don't|never) (?:e-?mail|call|phone|text)|asked (?:that we|us to) (?:contact|call|e-?mail|text|reach))\b/i
 
-export interface ContactPreference {
+export interface PreferenceStatement {
   /** The channel the student asked for, when the text names one. */
   channel: "Phone" | "Email" | "Text" | null
-  /** The sentence(s) stating the preference, verbatim. */
+  /** True for a restriction ("phone only"), false for a preference ("prefers phone") or other guidance. */
+  only: boolean
+  /** The sentence(s) stating it, verbatim. */
   text: string
 }
 
-export function extractContactPreference(noteText: string): ContactPreference | null {
-  const stated = sentences(noteText).filter((s) => PREFERENCE.test(s))
+function channelOf(word: string): PreferenceStatement["channel"] {
+  const w = word.toLowerCase()
+  if (w.startsWith("phone") || w.startsWith("call")) return "Phone"
+  if (w.startsWith("e")) return "Email"
+  if (w.startsWith("text")) return "Text"
+  return null
+}
+
+export function extractContactPreference(noteText: string): PreferenceStatement | null {
+  const stated = sentences(noteText).filter((s) => RESTRICTION.test(s) || PREFERS.test(s) || GUIDANCE.test(s))
   if (stated.length === 0) return null
   const text = stated.join(" ")
-  const asked = /\b(?:by|via) (phone|email|text)\b|\b(phone|email|text)[- ]only\b|\bprefers? (phone|email|text|call)/i.exec(text)
-  const word = (asked?.[1] ?? asked?.[2] ?? asked?.[3] ?? "").toLowerCase()
-  const channel = word === "phone" || word === "call" ? "Phone" : word === "email" ? "Email" : word === "text" ? "Text" : null
-  return { channel, text }
+  const restricted = RESTRICTION.exec(text)
+  if (restricted) return { channel: channelOf(restricted.slice(1).find(Boolean) ?? ""), only: true, text }
+  const preferred = PREFERS.exec(text)
+  if (preferred) return { channel: channelOf(preferred[1]), only: false, text }
+  return { channel: null, only: false, text }
 }
 
 // ---------- Dates written into a note (D20) ----------

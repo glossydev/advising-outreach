@@ -58,6 +58,28 @@ test("state: log-contact panel, with a warning showing", async ({ page }) => {
   await audit(page, "log-contact panel")
 })
 
+test("state: log-contact panel with an open follow-up and a preference to save", async ({ page }) => {
+  await page.goto("/students/S1037")
+  await page.getByRole("button", { name: "Log contact" }).first().click()
+  const form = page.getByRole("dialog", { name: "Log contact" })
+  await form.getByRole("textbox", { name: /^Note/ }).fill("Student prefers texts for reminders.")
+  await expect(form.getByRole("checkbox", { name: /Save as Camila's contact preference/ })).toBeVisible()
+  await expect(form.getByText("Open follow-ups")).toBeVisible()
+  await audit(page, "log-contact panel: follow-up and preference")
+})
+
+test("state: contact preference editor", async ({ page }) => {
+  await page.goto("/students/S1002")
+  await page.getByRole("button", { name: "Edit contact preference" }).click()
+  await expect(page.getByRole("dialog", { name: "Contact preference" })).toBeVisible()
+  await audit(page, "contact preference editor")
+})
+
+test("state: queue sorted by follow-up", async ({ page }) => {
+  await page.goto("/?sort=follow_up")
+  await audit(page, "queue sorted by follow-up")
+})
+
 test("state: Ctrl+K search", async ({ page }) => {
   await page.goto("/")
   const input = page.getByPlaceholder("Name, student ID, or email…")

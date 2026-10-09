@@ -199,8 +199,8 @@ export const ID_FIELD: Record<ImportKind, string> = { students: "student_id", no
 
 /**
  * Values that aren't CSV columns but record a person's decision on a row: linking a possible
- * duplicate (D15), the follow-up date and sensitivity of a note (D20, D18), and a contact
- * preference to save on the student (D19). They start blank.
+ * duplicate (D15), the follow-up date and sensitivity of a note (D20, D18), and "yes" to save the
+ * note's contact preference on the student (D19). They start blank.
  */
 export const DECISION_FIELDS: Record<ImportKind, readonly string[]> = {
   students: ["possible_duplicate_of"],

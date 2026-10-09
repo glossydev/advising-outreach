@@ -16,6 +16,8 @@ test("ranks never-contacted students first, then by score, with reasons", async 
   for (const [i, id] of ["S1018", "S1006", "S1040"].entries()) {
     await expect(rows.nth(i)).toContainText(id)
     await expect(rows.nth(i)).toContainText("Never contacted")
+    // No follow-up: a dash, read out as "None".
+    await expect(rows.nth(i).locator("td").nth(4)).toHaveText("—None")
   }
   // Then the highest scores, each with its reasons.
   await expect(rows.nth(3)).toContainText("90")
@@ -50,4 +52,48 @@ test("opens the log-contact panel straight from the queue", async ({ page }) => 
   await page.getByRole("button", { name: "Log contact for Mateo Alvarez" }).click()
   await expect(page.getByRole("dialog", { name: "Log contact" })).toBeVisible()
   await expect(page.getByRole("dialog")).toContainText("S1018")
+})
+
+test("sorts by rank, student, risk, last contact, follow-up or score, and each row keeps its rank", async ({ page }) => {
+  await page.goto("/")
+  const rows = page.locator("table tbody tr")
+  const rankOf = async (i: number) => (await rows.nth(i).locator("td").first().innerText()).trim()
+
+  await page.getByRole("button", { name: /^Student\. Sort ascending/ }).click()
+  await expect(page).toHaveURL(/sort=name/)
+  await expect(rows.first()).toContainText("Fatima Al-Sayed")
+  expect(await rankOf(0)).not.toBe("1")
+  await expect(page.getByRole("columnheader", { name: /Student/ })).toHaveAttribute("aria-sort", "ascending")
+
+  await page.getByRole("button", { name: /^Score\. Sort descending/ }).click()
+  await expect(page).toHaveURL(/sort=score/)
+  await expect(rows.first()).toContainText("90")
+
+  await page.getByRole("button", { name: /^Follow-up\. Sort ascending/ }).click()
+  await expect(rows.first()).toContainText("Camila Vargas")
+  await expect(rows.first()).toContainText("Due in 10 days")
+
+  await page.getByRole("button", { name: /^Rank\. Sort ascending/ }).click()
+  await expect(page).not.toHaveURL(/sort=/)
+  expect(await rankOf(0)).toBe("1")
+  await expect(rows.first()).toContainText("S1018")
+})
+
+test("puts a student whose follow-up is due today at the very top (P8)", async ({ page, request }) => {
+  const response = await request.post("/api/students/S1001/notes", {
+    data: {
+      contact_date: "2026-09-28",
+      contact_type: "Email",
+      advisor: "Okafor",
+      note_text: "Will check in on the transfer credit next week.",
+      follow_up_date: "2026-10-05",
+    },
+  })
+  expect(response.status()).toBe(201)
+  await page.goto("/")
+  const first = page.locator("table tbody tr").first()
+  await expect(first).toContainText("Maya Patel")
+  await expect(first).toContainText("Due today")
+  await expect(first).toContainText("Follow-up due today")
+  await reloadSampleData(request)
 })

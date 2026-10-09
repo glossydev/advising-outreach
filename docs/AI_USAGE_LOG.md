@@ -303,3 +303,40 @@ Adam asked the hiring team about the empty README.txt, and they sent the full fi
 - `npm run test:e2e`: 44 passed (18 accessibility checks, 26 end-to-end).
 - `npm test`: 111 passed, including new checks that every screenshot and link in the help exists.
 - Typecheck and lint: clean.
+
+## 2026-10-08 — Phase 6 review: Adam's notes and a second AI's code review
+
+Adam reviewed Phase 6 with four notes, and passed on findings from another AI agent he'd asked to review the code for bugs and loose ends. Claude checked every claim against the code before changing anything.
+
+**Adam's notes, and what was decided**
+1. **The contact preference was tangled up with the contact type.** Adam saw a phone-only preference nudging contacts to be recorded as phone calls.
+   - *What Claude found:* the importer never changed N001's contact type (it's Phone in the CSV). What did the damage was D19's stored preference: the Log contact form used it to pre-select the contact type and to warn on any other choice. That's the bug Adam described. The type records how a contact happened.
+   - *Decided:* Claude offered reading preferences from notes, or a real field with an editor. Adam chose the real field (P9). The form no longer chooses a contact type at all (P6 revised).
+2. **Sortable queue** (P10): Rank, Student, Risk, Last contact, Follow-up, Score. Rank keeps the outreach order whatever the sort.
+3. **Follow-ups** (P8): Adam specified the column, a 2-day ramp and "due today goes to the very top". Claude asked two follow-up questions with options. Adam chose: overdue stays at the top, the oldest first; a follow-up is completed by a checkbox when logging a contact.
+4. **"Explain the math."** Answered in chat. The help pages gained a worked example and an honest note about the cliffs in the time-since-contact steps.
+
+**The code review's seven findings: all real**
+- **High: a network failure while saving a note crashed the page and lost the draft.** The save had no error handling. It now keeps the draft and shows a retryable message. An e2e test cuts the connection to prove it.
+- **High: an SSN could survive in a saved preference.** D19 copied the note's original sentence, before D17's fix. Fixed: accepting D19 now sets a flag, and the preference is worked out at commit from the final text, SSN-scrubbed again. The rule's message masks SSNs too.
+- **Medium: an unrelated note made an open follow-up disappear.** Scoring only read the newest note's follow-up. Also, a follow-up more than 14 days out wasn't shown anywhere. Both fixed by P8.
+- **Medium: an older import could overwrite a newer preference.** "Newest wins" only applied within one file. It now compares against the stored preference, and the review step says when a statement is older and won't be saved.
+- **Medium: preferences couldn't be updated.** Now possible from a logged note (an opt-in box) and from an editor on the student's page.
+- **Medium: the detector over-reached.** "Contacted the student by email" was read as an email-only instruction, and "prefers email" became "email only". The detector now tells restrictions, preferences and other guidance apart, and ignores how a contact happened.
+- **Low: "Back to list" lost filters.** It relied on `document.referrer`, which client-side navigation doesn't update. Each list now records its exact address for the tab (P11).
+
+**What Claude got wrong this round**
+- **D19 and P6 were Claude's designs from Phases 3 to 5,** and four of the seven findings, plus Adam's first note, trace back to them. The single root cause: a preference stored as a by-product of import, with no owner and no way to edit it.
+- **A PowerShell rewrite of `queue-table.tsx` double-encoded a dash** into "Ã¢â‚¬â€". The tests passed; reviewing the regenerated screenshots caught it. Fixed, a test now checks that cell, and CLAUDE.md says never to rewrite source files with PowerShell.
+- **Adding the Follow-up column clipped "Log contact" at 1280px again.** Measured in a browser and fixed with tighter padding.
+- **Claude dated this work 2026-10-09 in several places.** It's 2026-10-08. Corrected.
+
+**The dev-server reload loop Adam reported in Phase 4: seen once, not solved**
+- The dev server got into a state where every page load got "HMR hash mismatch" and an immediate reload, about three times a second. It began after files were rewritten while the dev server was running. Restarting the dev server cleared it.
+- Ruled out: two dev servers sharing `.next/` (only one was running); a production build just before starting dev (tried, no loop); rewriting a file with a BOM while dev runs (tried, no loop).
+- If it happens again: stop the dev server and start it again.
+
+**Results**
+- `npm run test:e2e`: 54 passed (21 accessibility checks, 33 end-to-end).
+- `npm test`: 128 passed; 135 with the Postgres suite in Docker, which also ran the new migration.
+- Typecheck and lint: clean.

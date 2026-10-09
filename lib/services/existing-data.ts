@@ -1,3 +1,4 @@
+import { parsePreference, preferenceHeading } from "@/lib/contact-preference"
 import type { Db } from "@/lib/db/client"
 import type { ExistingData, ExistingNote, ExistingStudent } from "@/lib/import/types"
 
@@ -18,6 +19,7 @@ export async function loadExistingData(db: Db): Promise<ExistingData> {
       "risk_flag",
       "source_last_contact_date",
       "possible_duplicate_of",
+      "contact_preference",
     ])
     .execute()
   const notes = await db
@@ -33,15 +35,20 @@ export async function loadExistingData(db: Db): Promise<ExistingData> {
 
   return {
     students: new Map<string, ExistingStudent>(
-      students.map((s) => [
-        s.student_id,
-        {
-          ...s,
-          credits_earned: Number(s.credits_earned),
-          gpa: s.gpa === null ? null : Number(s.gpa),
-          newest_note_date: newest.get(s.student_id) ?? null,
-        },
-      ]),
+      students.map(({ contact_preference, ...s }) => {
+        const preference = parsePreference(contact_preference)
+        return [
+          s.student_id,
+          {
+            ...s,
+            credits_earned: Number(s.credits_earned),
+            gpa: s.gpa === null ? null : Number(s.gpa),
+            newest_note_date: newest.get(s.student_id) ?? null,
+            // Only what the rules need: the details stay on the server.
+            preference: preference ? { heading: preferenceHeading(preference), stated_on: preference.stated_on } : null,
+          },
+        ]
+      }),
     ),
     notes: new Map<string, ExistingNote>(notes.map((n) => [n.note_id, n])),
   }

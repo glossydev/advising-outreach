@@ -2,15 +2,15 @@
 
 import { useRef } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowDown, ArrowUp, ArrowUpDown, SearchX, TriangleAlert } from "lucide-react"
+import { SearchX, TriangleAlert } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import { EmptyState } from "@/components/shared/page-header"
+import { SortHeader } from "@/components/shared/sort-header"
 import { RiskBadge } from "@/components/shared/risk-badge"
 import { LastContact } from "@/components/shared/contact-recency"
 import { useSearchParamUpdater } from "@/hooks/use-search-param-updater"
 import type { SortDirection, Student, StudentSortKey } from "@/lib/types"
 import { fullName } from "@/lib/format"
-import { cn } from "@/lib/utils"
 
 const COLUMNS: { key: StudentSortKey; label: string; numeric?: boolean }[] = [
   { key: "student_id", label: "Student ID" },
@@ -23,42 +23,6 @@ const COLUMNS: { key: StudentSortKey; label: string; numeric?: boolean }[] = [
   { key: "last_contact", label: "Last contact" },
   { key: "risk", label: "Risk" },
 ]
-
-function SortHeader({
-  column,
-  sort,
-  dir,
-  onSort,
-}: {
-  column: (typeof COLUMNS)[number]
-  sort: StudentSortKey
-  dir: SortDirection
-  onSort: (key: StudentSortKey) => void
-}) {
-  const active = sort === column.key
-  const Icon = !active ? ArrowUpDown : dir === "asc" ? ArrowUp : ArrowDown
-  const next = active && dir === "asc" ? "descending" : "ascending"
-  return (
-    <th
-      scope="col"
-      aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : "none"}
-      className={cn("px-2.5 py-1.5 font-semibold whitespace-nowrap", column.numeric && "text-right")}
-    >
-      <button
-        type="button"
-        onClick={() => onSort(column.key)}
-        aria-label={`${column.label}${active ? `, sorted ${dir === "asc" ? "ascending" : "descending"}` : ""}. Sort ${next}.`}
-        className={cn(
-          "-mx-1.5 inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-navy/5",
-          column.numeric && "flex-row-reverse",
-        )}
-      >
-        {column.label}
-        <Icon className={cn("size-3.5", active ? "text-navy" : "text-muted-foreground")} aria-hidden="true" />
-      </button>
-    </th>
-  )
-}
 
 export function DirectoryTable({
   students,
@@ -130,7 +94,15 @@ export function DirectoryTable({
         <thead className="bg-cloud text-left text-[13px] text-navy">
           <tr>
             {COLUMNS.map((c) => (
-              <SortHeader key={c.key} column={c} sort={sort} dir={dir} onSort={onSort} />
+              <SortHeader
+                key={c.key}
+                label={c.label}
+                numeric={c.numeric}
+                active={sort === c.key}
+                dir={dir}
+                nextDir={sort === c.key && dir === "asc" ? "desc" : "asc"}
+                onSort={() => onSort(c.key)}
+              />
             ))}
           </tr>
         </thead>

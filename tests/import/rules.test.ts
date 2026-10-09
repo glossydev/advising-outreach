@@ -1,7 +1,9 @@
 import { readFileSync } from "node:fs"
 import { describe, expect, it } from "vitest"
+import { buildCommitPlan } from "@/lib/import/plan"
 import { setValue } from "@/lib/import/resolve"
 import { RULES } from "@/lib/import/rules"
+import { extractContactPreference } from "@/lib/import/text"
 import { validateRows } from "@/lib/import/validate"
 import { TODAY, existingData, existingStudent, noteLine, ofRule, scan, studentLine } from "../helpers"
 
@@ -242,17 +244,68 @@ describe("D18 sensitive_content", () => {
 })
 
 describe("D19 contact_preference_in_text", () => {
-  it("offers to save the preference, with the channel", () => {
-    const [issue] = ofRule(
-      scan("notes", [noteLine({ note_text: "Asked that we contact him by phone only; email goes to a shared family account." })]).issues,
-      "contact_preference_in_text",
-    )
-    const saved = JSON.parse(issue.suggestions[0].set!.contact_preference)
-    expect(saved).toMatchObject({ channel: "Phone", note_id: "N1", noted_on: "2026-09-18" })
+  const d19 = (lines: string[], existing?: Parameters<typeof scan>[2]) => ofRule(scan("notes", lines, existing).issues, "contact_preference_in_text")
+
+  it("offers to save it as the student's contact preference, never as the contact type", () => {
+    const [issue] = d19([noteLine({ note_text: "Asked that we contact him by phone only; email goes to a shared family account." })])
+    expect(issue.severity).toBe("warning")
+    expect(issue.suggestions).toEqual([{ label: "Save as S1's contact preference (Phone only)", set: { contact_preference: "yes" } }])
   })
-  it("keeps preferences without a channel", () => {
-    const [issue] = ofRule(scan("notes", [noteLine({ note_text: "Best reached after 5 pm." })]).issues, "contact_preference_in_text")
-    expect(JSON.parse(issue.suggestions[0].set!.contact_preference).channel).toBeNull()
+
+  it("tells a restriction, a preference and other guidance apart", () => {
+    expect(extractContactPreference("Asked that we contact him by phone only.")).toMatchObject({ channel: "Phone", only: true })
+    expect(extractContactPreference("Student prefers email from now on.")).toMatchObject({ channel: "Email", only: false })
+    expect(extractContactPreference("Best reached after 5 pm.")).toMatchObject({ channel: null, only: false })
+    expect(extractContactPreference("Please do not call; texts are fine.")).toMatchObject({ channel: null })
+  })
+
+  it("doesn't read how a contact happened as a preference", () => {
+    expect(d19([noteLine({ note_text: "Contacted student by email to discuss registration." })])).toEqual([])
+    expect(extractContactPreference("Called the student by phone about the hold.")).toBeNull()
+  })
+
+  it("can save only the newest statement for a student in the file", () => {
+    const issues = d19([
+      noteLine({ note_id: "N1", contact_date: "2026-09-01", note_text: "Prefers phone." }),
+      noteLine({ note_id: "N2", contact_date: "2026-09-20", note_text: "Student prefers email now." }),
+    ])
+    expect(issues.map((i) => [i.rowIndex, i.severity, i.suggestions.length])).toEqual([
+      [0, "info", 0],
+      [1, "warning", 1],
+    ])
+    expect(issues[0].message).toMatch(/Row 3 \(N2\) states a newer one/)
+  })
+
+  it("never replaces a newer preference already on the record", () => {
+    const onFile = existingData([existingStudent({ preference: { heading: "Email only", stated_on: "2026-10-04" } })])
+    const [issue] = d19([noteLine({ contact_date: "2026-09-01", note_text: "Prefers phone." })], onFile)
+    expect(issue).toMatchObject({ severity: "info", suggestions: [] })
+    expect(issue.message).toMatch(/already has a newer one \(Email only, from Oct 4, 2026\), which is kept/)
+  })
+
+  it("says when saving would replace an older preference", () => {
+    const onFile = existingData([existingStudent({ preference: { heading: "Phone only", stated_on: "2026-01-22" } })])
+    const [issue] = d19([noteLine({ note_text: "Student prefers email now." })], onFile)
+    expect(issue.message).toMatch(/replaces the one on file \(Phone only, from Jan 22, 2026\)/)
+  })
+
+  it("never shows an SSN in its message", () => {
+    const [issue] = d19([noteLine({ note_text: "Phone only. SSN 123-45-6789 on file." })])
+    expect(issue.message).not.toMatch(/123-45-6789/)
+  })
+
+  it("saves what the final text says, after the SSN is removed", () => {
+    const { rows, ctx } = scan("notes", [noteLine({ note_text: "Prefers phone only, SSN 123-45-6789." })])
+    let reviewed = setValue(rows, 0, "contact_preference", "yes")
+    reviewed = setValue(reviewed, 0, "note_text", "Prefers phone only, SSN [SSN removed].")
+    const plan = buildCommitPlan("notes", reviewed, validateRows("notes", reviewed, ctx), ctx)
+    expect(plan.preferences).toEqual([
+      {
+        student_id: "S1",
+        preference: { channel: "Phone", only: true, details: "Prefers phone only, SSN [SSN removed].", stated_on: "2026-09-18", source_note_id: "N1" },
+      },
+    ])
+    expect(JSON.stringify(plan)).not.toMatch(/123-45-6789/)
   })
 })
 

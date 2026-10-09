@@ -32,6 +32,19 @@ export function formatDaysAgo(days: number) {
   return `${days} days ago`
 }
 
+/**
+ * A follow-up date relative to today (P8). "due" (today or overdue) puts the student at the top of
+ * the queue; "soon" is the two days before, when it starts adding points.
+ */
+export function describeFollowUp(iso: string, reference: Date = TODAY): { text: string; tone: "due" | "soon" | "later" } {
+  const until = -daysSince(iso, reference)
+  if (until < 0) return { text: `${-until} ${until === -1 ? "day" : "days"} overdue`, tone: "due" }
+  if (until === 0) return { text: "Due today", tone: "due" }
+  if (until === 1) return { text: "Due tomorrow", tone: "soon" }
+  if (until === 2) return { text: "Due in 2 days", tone: "soon" }
+  return { text: `Due in ${until} days`, tone: "later" }
+}
+
 export function fullName(s: { first_name: string; last_name: string }) {
   return `${s.first_name} ${s.last_name}`
 }

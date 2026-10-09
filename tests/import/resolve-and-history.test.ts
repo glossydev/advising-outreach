@@ -61,7 +61,9 @@ describe("commit plan", () => {
     const after = acceptAllSuggestions("notes", rows, ctx)
     const plan = buildCommitPlan("notes", after, validateRows("notes", after, ctx), ctx)
     expect(plan.noteInserts[0]).toMatchObject({ follow_up_date: "2026-10-15", is_sensitive: false })
-    expect(plan.preferences[0]).toMatchObject({ student_id: "S1", preference: { channel: "Phone", note_id: "N1" } })
+    expect(plan.preferences[0]).toMatchObject({ student_id: "S1", preference: { channel: "Phone", only: true, source_note_id: "N1" } })
+    // The preference goes on the student; the note keeps its own contact type.
+    expect(plan.noteInserts[0].contact_type).toBe("In person")
   })
 })
 

@@ -18,7 +18,7 @@ export interface StudentsTable {
   risk_flag: string
   /** last_contact_date exactly as the spreadsheet had it, after the import's fixes (D22). */
   source_last_contact_date: string | null
-  /** JSON ContactPreference saved from a note (D19). */
+  /** JSON ContactPreference (P9), from a note or entered on the student's page. Read with parsePreference. */
   contact_preference: string | null
   /** Soft link to another student who may be the same person (D15). */
   possible_duplicate_of: string | null
@@ -35,6 +35,8 @@ export interface ContactNotesTable {
   advisor: string
   note_text: string
   follow_up_date: string | null
+  /** The note that completed this follow-up (P8); null while it's open. Added in migration 0002. */
+  follow_up_done_by: string | null
   /** 0/1 (D18). */
   is_sensitive: number
   /** "import" or "app". */

@@ -27,6 +27,10 @@ const NewNote = z.object({
   note_text: z.string(),
   follow_up_date: z.string().nullable().optional(),
   is_sensitive: z.boolean().optional(),
+  /** Note IDs of open follow-ups this contact completes (P8). */
+  completes_follow_ups: z.array(z.string()).max(50).optional(),
+  /** Save the preference the note states as the student's contact preference (P9). */
+  save_preference: z.boolean().optional(),
 })
 
 /** POST /api/students/:id/notes: logs a contact; returns the note and the student's recomputed score. */

@@ -6,6 +6,7 @@ import { DirectoryTable } from "@/components/students/directory-table"
 import { DirectoryPagination } from "@/components/students/directory-pagination"
 import { TableSkeleton } from "@/components/queue/queue-skeleton"
 import { EmptyDatabase } from "@/components/shared/empty-database"
+import { RememberListView } from "@/components/shared/remember-list-view"
 import { getAdvisors, getMajors, getRecordCounts, getStudents } from "@/lib/data"
 import { getSelectedAdvisor } from "@/lib/advisor"
 import { ALL_ADVISORS, PAGE_SIZE } from "@/lib/config"
@@ -57,6 +58,7 @@ export default async function StudentsPage({ searchParams }: { searchParams: Pro
           <DirectoryResults filters={{ ...filters, advisor }} page={page} params={params} />
         </Suspense>
       </section>
+      <RememberListView label="Students" />
     </div>
   )
 }

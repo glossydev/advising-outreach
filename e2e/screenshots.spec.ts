@@ -33,7 +33,11 @@ interface ShotOptions {
 /** Waits for animations, toasts and the network to settle, then saves a JPEG. */
 async function shot(page: Page, name: string, options: ShotOptions = {}) {
   await page.waitForLoadState("networkidle")
-  if (!options.keepToasts) await expect(page.locator("[data-sonner-toast]")).toHaveCount(0, { timeout: 10_000 })
+  if (!options.keepToasts) {
+    // A toast under the pointer stays up (Sonner pauses it on hover), and Save is right where toasts appear.
+    await page.mouse.move(1, 1)
+    await expect(page.locator("[data-sonner-toast]")).toHaveCount(0, { timeout: 10_000 })
+  }
   await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== "running"))
   const path = `${OUT}/${name}.jpg`
   const settings = {
@@ -108,6 +112,24 @@ plain("walk every screen and capture it for the help pages", async ({ browser, r
   await page.locator("header").getByRole("combobox", { name: "Advisor" }).click()
   await page.getByRole("option", { name: "All advisors" }).click()
   await expect(page.getByLabel("Outreach summary")).toContainText("Across all advisors")
+  await page.goto("/?sort=follow_up")
+  await expect(page.locator("table tbody tr").first()).toContainText("Due in 10 days")
+  await shot(page, "queue-sorted")
+  // A follow-up due today goes to the very top (P8). Logged through the API, then undone.
+  const logged = await request.post("/api/students/S1001/notes", {
+    data: {
+      contact_date: "2026-09-28",
+      contact_type: "Email",
+      advisor: "Okafor",
+      note_text: "Will check in on the transfer credit next week.",
+      follow_up_date: "2026-10-05",
+    },
+  })
+  expect(logged.status()).toBe(201)
+  await page.goto("/")
+  await expect(page.locator("table tbody tr").first()).toContainText("Due today")
+  await shot(page, "queue-follow-up-due")
+  await reloadSampleData(request)
 
   // Search from anywhere
   const palette = page.getByPlaceholder("Name, student ID, or email…")
@@ -149,6 +171,13 @@ plain("walk every screen and capture it for the help pages", async ({ browser, r
   await page.goto("/students/S9999")
   await shot(page, "student-not-found")
 
+  // Contact preference editor (P9)
+  await page.goto("/students/S1002")
+  await page.getByRole("button", { name: "Edit contact preference" }).click()
+  await expect(page.getByRole("dialog", { name: "Contact preference" })).toBeVisible()
+  await shot(page, "preference-editor")
+  await page.keyboard.press("Escape")
+
   // Logging a contact
   await page.goto("/students/S1002")
   await page.getByRole("button", { name: "Log contact" }).first().click()
@@ -165,10 +194,27 @@ plain("walk every screen and capture it for the help pages", async ({ browser, r
   await shot(page, "log-contact-discard", { mask: "textarea" })
   await page.getByRole("button", { name: "Discard" }).click()
   await page.getByRole("button", { name: "Log contact" }).first().click()
+  await form.getByRole("combobox", { name: "Contact type" }).click()
+  await page.getByRole("option", { name: "Phone" }).click()
   await form.getByRole("textbox", { name: /^Note/ }).fill("Called as requested. Set up tutoring for Accounting II; will check in after the first session.")
   await form.getByRole("button", { name: "Save contact" }).click()
   await expect(page.getByText("Contact logged for Jordan Whitfield")).toBeVisible()
   await shot(page, "log-contact-saved", { keepToasts: true })
+
+  // An open follow-up and a stated preference in the same contact (P8, P9)
+  await page.goto("/students/S1037")
+  await page.getByRole("button", { name: "Log contact" }).first().click()
+  await form.getByRole("combobox", { name: "Contact type" }).click()
+  await page.getByRole("option", { name: "In person" }).click()
+  await form.getByRole("textbox", { name: /^Note/ }).fill("FAFSA verification submitted together. Student prefers texts for reminders.")
+  await form.getByRole("checkbox", { name: /completes the follow-up/ }).check()
+  await form.getByRole("checkbox", { name: /Save as Camila's contact preference/ }).check()
+  await form.getByText("Open follow-ups").scrollIntoViewIfNeeded()
+  await shot(page, "log-contact-follow-up")
+  await form.getByRole("button", { name: "Save contact" }).click()
+  await expect(page.getByText("Contact logged for Camila Vargas")).toBeVisible()
+  await shot(page, "timeline-follow-up-done", { clip: "#contact-timeline" })
+  await reloadSampleData(request)
 
   // Data quality
   await page.goto("/data-quality")

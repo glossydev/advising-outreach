@@ -1,7 +1,8 @@
+import { preferenceFromNote } from "../contact-preference"
+import type { ContactPreference } from "../types"
 import { readDate } from "./dates"
 import type { ImportKind } from "./fields"
 import { sameNote, studentChanges } from "./rules/id-already-imported"
-import type { SavedContactPreference } from "./rules/contact-preference-in-text"
 import type { ImportRow, Issue, RuleContext } from "./types"
 import { blockingIssues } from "./validate"
 
@@ -45,8 +46,12 @@ export interface CommitPlan {
   noteInserts: NoteWrite[]
   /** Students already up to date, or notes already imported. */
   unchanged: string[]
-  /** Contact preferences to save on students (D19), latest note wins. */
-  preferences: { student_id: string; preference: SavedContactPreference }[]
+  /**
+   * Contact preferences to save on students (D19, P9): from rows where the suggestion was accepted,
+   * worked out from the final note text. The newest per student, and only if it isn't older than
+   * the one already on the record.
+   */
+  preferences: { student_id: string; preference: ContactPreference }[]
   excludedRows: number[]
 }
 
@@ -104,7 +109,7 @@ export function buildCommitPlan(
     excludedRows: rows.filter((r) => r.excluded).map((r) => r.index),
   }
 
-  const latestPreference = new Map<string, SavedContactPreference>()
+  const latestPreference = new Map<string, ContactPreference>()
   for (const row of rows) {
     if (row.excluded) continue
     if (kind === "students") {
@@ -123,12 +128,17 @@ export function buildCommitPlan(
     const existing = ctx.existing.notes.get(write.note_id)
     if (existing && sameNote(row, existing)) plan.unchanged.push(write.note_id)
     else if (!existing) plan.noteInserts.push(write)
-    if (row.values.contact_preference) {
-      const preference = JSON.parse(row.values.contact_preference) as SavedContactPreference
+    if (row.values.contact_preference === "yes") {
+      const preference = preferenceFromNote(write)
       const current = latestPreference.get(write.student_id)
-      if (!current || (preference.noted_on ?? "") >= (current.noted_on ?? "")) latestPreference.set(write.student_id, preference)
+      if (preference && (!current || preference.stated_on >= current.stated_on)) latestPreference.set(write.student_id, preference)
     }
   }
-  plan.preferences = [...latestPreference].map(([student_id, preference]) => ({ student_id, preference }))
+  plan.preferences = [...latestPreference]
+    .filter(([studentId, preference]) => {
+      const onFile = ctx.existing.students.get(studentId)?.preference
+      return !onFile || preference.stated_on >= onFile.stated_on
+    })
+    .map(([student_id, preference]) => ({ student_id, preference }))
   return plan
 }

@@ -16,6 +16,7 @@ Browser tests (first time: `npx playwright install chromium`). Both build first,
 - `npm run test:e2e`: the end-to-end specs and the axe checks (anything worse than "minor" fails) in `e2e/`.
 - `npm run docs:screenshots`: walks every screen and saves the help screenshots to `public/help/screens/`. It fails on any browser error along the way. Run it **before** `test:e2e`: `next start` only serves public files that existed at build time, and `e2e/help.spec.ts` checks every screenshot loads.
 The dev machine is Windows/PowerShell 5.1: no `&&` chaining. Commit messages containing double quotes must go through a file (`git commit -F msg.txt`); PowerShell 5.1 splits quoted text when passing arguments to git.
+**Never rewrite source files with PowerShell** (`Get-Content`/`Set-Content`): 5.1 reads UTF-8 without a BOM as ANSI and writes one back, so "—" becomes "Ã¢â‚¬â€" (this happened to `queue-table.tsx` on 2026-10-08). Use the editor tools, or Node's `fs` for scripted edits.
 
 Tests on Postgres too: start a throwaway container and point `TEST_DATABASE_URL` at it (the sample-import suite then runs on both databases):
 `docker run -d --rm --name advising-test-pg -e POSTGRES_PASSWORD=localtest -e POSTGRES_DB=advising_test -p 55432:5432 postgres:16-alpine`, then `$env:TEST_DATABASE_URL="postgres://postgres:localtest@localhost:55432/advising_test"; npm test`.
@@ -54,6 +55,7 @@ Tests on Postgres too: start a throwaway container and point `TEST_DATABASE_URL`
 - `app/(app)/import/` + `components/import/`: the step-by-step import (choose a file, check columns, review and fix, done) and the prototype-only panel; it re-checks rows in the browser with the same `lib/import` functions the server uses
 - `components/app-shell/welcome-dialog.tsx`: first-visit welcome (P4); the UA logo is only shown from an official file in `public/brand/`
 - Testing the UI with browser automation: the automated tab may be in the background, where Chrome pauses CSS animations, so dialogs and panels can look stuck mid open/close. Take a screenshot (which brings the tab forward) before concluding something is broken.
-- `lib/scoring.ts`: outreach score and reasons (`WEIGHTS` table)
+- `lib/scoring.ts`: outreach score and reasons (`WEIGHTS` table), open follow-ups, and the queue order (`compareOutreach`: follow-ups due, then never contacted, then score)
+- `lib/contact-preference.ts`: the student's contact preference (P9), the one set of rules used by the import (D19), the Log contact form, the editor and the API
 - `lib/types.ts`, `lib/config.ts`: shared types and settings (`TODAY`, reference date via `NEXT_PUBLIC_REFERENCE_DATE`)
 - `AGENTS.md` is written by `next dev` itself. Next 16 differs from older versions; its own docs are in `node_modules/next/dist/docs/`, so check there before using an unfamiliar Next API.

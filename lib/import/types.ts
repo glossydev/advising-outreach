@@ -79,6 +79,8 @@ export interface ExistingStudent {
   /** Set when an earlier import linked this student as a possible duplicate (D15). */
   possible_duplicate_of: string | null
   newest_note_date: string | null
+  /** The contact preference already on the record (P9), so an older statement can't replace a newer one (D19). */
+  preference: { heading: string; stated_on: string } | null
 }
 
 export interface ExistingNote {

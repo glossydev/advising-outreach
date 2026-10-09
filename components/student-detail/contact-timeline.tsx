@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import { ChevronDown, Lock, Mail, Phone, Users, Video } from "lucide-react"
+import { Check, ChevronDown, Lock, Mail, Phone, Users, Video } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import type { ContactNote, ContactType } from "@/lib/types"
 import { formatDate, isBeforeToday } from "@/lib/format"
@@ -16,8 +16,16 @@ const TYPE_ICONS: Record<ContactType, React.ComponentType<{ className?: string }
 
 const VISIBLE_COUNT = 3
 
-function FollowUpChip({ date }: { date: string }) {
+function FollowUpChip({ date, doneBy }: { date: string; doneBy: string | null }) {
   const overdue = isBeforeToday(date)
+  if (doneBy) {
+    return (
+      <span className="inline-flex items-center gap-1 rounded-md border border-border bg-muted px-1.5 py-0.5 text-[12px] font-medium text-muted-foreground">
+        <Check className="size-3.5" aria-hidden="true" />
+        Follow-up for {formatDate(date)} done in {doneBy}
+      </span>
+    )
+  }
   return (
     <span
       className={cn(
@@ -87,7 +95,7 @@ function TimelineEntry({ note, last }: { note: ContactNote; last: boolean }) {
         <NoteBody note={note} />
         {note.follow_up_date && (
           <div>
-            <FollowUpChip date={note.follow_up_date} />
+            <FollowUpChip date={note.follow_up_date} doneBy={note.follow_up_done_by} />
           </div>
         )}
       </article>

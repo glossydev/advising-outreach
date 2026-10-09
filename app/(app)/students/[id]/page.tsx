@@ -36,6 +36,7 @@ export default async function StudentDetailPage({ params }: Props) {
     last_name: student.last_name,
     advisor: student.advisor,
     contact_preference: student.contact_preference,
+    open_follow_ups: student.open_follow_ups,
   }
 
   return (
