@@ -47,12 +47,10 @@ function CommandDialog({
   showCloseButton?: boolean
   children: React.ReactNode
 }) {
+  // The title must be inside the popup to label it, and the items need <Command> around them:
+  // without it cmdk has no store, and opening the dialog crashed the page (found by e2e tests).
   return (
     <Dialog {...props}>
-      <DialogHeader className="sr-only">
-        <DialogTitle>{title}</DialogTitle>
-        <DialogDescription>{description}</DialogDescription>
-      </DialogHeader>
       <DialogContent
         className={cn(
           "top-1/3 translate-y-0 overflow-hidden rounded-xl! p-0",
@@ -60,7 +58,11 @@ function CommandDialog({
         )}
         showCloseButton={showCloseButton}
       >
-        {children}
+        <DialogHeader className="sr-only">
+          <DialogTitle>{title}</DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <Command>{children}</Command>
       </DialogContent>
     </Dialog>
   )

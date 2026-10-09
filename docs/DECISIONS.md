@@ -175,6 +175,14 @@ Every factor adds a plain-language reason, and the reasons are shown to advisors
   - note text that mentions sensitive topics, which suggests ticking "Sensitive note" (D18). The advisor decides.
 - **IDs:** new notes continue the dataset's ID pattern (N058, N059, …). _(Claude, 2026-10-08.)_
 
+**P7: Help pages at `/help`, linked from the bottom of the sidebar.** _(Adam asked for them, 2026-10-08. The details are Claude's.)_
+- **Why:** not in the brief. Adam's reason for asking: writing them means going through every screen, dialog and function, which finds bugs and unfinished features. It did (see the Phase 6 entry in AI_USAGE_LOG).
+- **Navigation:** a clickable contents list down the left and a search that narrows both the contents and the page to the matching topics, with the matches highlighted. Every heading has its own link.
+- **Opens in a new tab,** so following a help link never throws away a half-done import or an unsaved note. The link says so, visibly and to screen readers.
+- **Written in Markdown** (`content/help.md`). It is split by headings into sections and topics; anyone can edit it without touching code.
+- **Screenshots are generated, not hand-made.** A Playwright walk through the app (`npm run docs:screenshots`) recreates them, so they can be redone after any UI change. A unit test fails if the help shows a missing image or links to a missing heading.
+- **Accuracy:** every statement was checked against the code, not against memory of it. The first draft had six mismatches; they're listed in AI_USAGE_LOG.
+
 ## Technical decisions
 
 **T1: Package manager is npm.** _(Revised 2026-10-08. The first version was pnpm 12.3.4, as pinned by v0.)_
@@ -208,3 +216,11 @@ Every factor adds a plain-language reason, and the reasons are shown to advisors
 **T4: Import rules are plain functions shared by browser and server.** The browser re-checks a row the moment it's edited, so highlighting updates instantly. The server re-runs the same functions on commit and refuses anything still blocking, so the browser never has the final say.
 
 **T5: The seed script is an import with every suggestion accepted.** `pnpm seed` sends the sample files through the same rules and records each fix as accepted by the seed script. A fresh clone, the hosted demo and the end-to-end tests all start from the same known state, produced by the same code a person would use.
+
+**T9: The app's pages live in a route group, `app/(app)/`.** Its layout holds the shell (sidebar, top bar, welcome dialog). The help pages sit outside it with their own layout. URLs are unchanged: a route group only groups files.
+
+**T10: Browser tests run against a production build, on their own database.**
+- **The server:** Playwright builds the app and starts `next start` on port 3100, with `DATABASE_URL=file:./data/e2e.db`, seeded fresh. The dev database is never touched, and the tests see what a user would see, not the dev server.
+- **One worker, in order:** the specs share one database. Each spec reloads the sample data before it starts. The import spec, which empties the database, also reloads it when it finishes.
+- **Accessibility:** axe runs on every page and on each dialog and panel state. Anything worse than "minor" fails the run. Checks wait for animations to finish, because a panel measured mid-fade fails contrast checks it passes when settled.
+- **The screenshot walk is a second Playwright project** (`docs`), kept out of `test:e2e` because it rewrites committed files. It fails on any browser error, so it doubles as a sweep of every screen.

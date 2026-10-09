@@ -38,25 +38,25 @@ export function QueueTable({ students, selectedAdvisor }: { students: Student[];
           </caption>
           <thead className="bg-cloud text-left text-[13px] text-navy">
             <tr>
-              <th scope="col" className="w-12 px-3 py-2 text-right font-semibold">
+              <th scope="col" className="w-12 px-2.5 py-2 text-right font-semibold">
                 Rank
               </th>
-              <th scope="col" className="px-3 py-2 font-semibold">
+              <th scope="col" className="px-2.5 py-2 font-semibold">
                 Student
               </th>
-              <th scope="col" className="px-3 py-2 font-semibold">
+              <th scope="col" className="px-2.5 py-2 font-semibold">
                 Risk
               </th>
-              <th scope="col" className="px-3 py-2 font-semibold">
+              <th scope="col" className="px-2.5 py-2 font-semibold">
                 Last contact
               </th>
-              <th scope="col" className="px-3 py-2 font-semibold">
+              <th scope="col" className="px-2.5 py-2 font-semibold">
                 Score
               </th>
-              <th scope="col" className="px-3 py-2 font-semibold">
+              <th scope="col" className="px-2.5 py-2 font-semibold">
                 Reasons
               </th>
-              <th scope="col" className="px-3 py-2 text-right font-semibold">
+              <th scope="col" className="px-2.5 py-2 text-right font-semibold">
                 <span className="sr-only">Actions</span>
               </th>
             </tr>
@@ -68,23 +68,26 @@ export function QueueTable({ students, selectedAdvisor }: { students: Student[];
                 onClick={() => router.push(`/students/${s.student_id}`)}
                 className="cursor-pointer border-t border-border align-middle hover:bg-muted"
               >
-                <td className="px-3 py-2 text-right font-medium tabular-nums text-muted-foreground">{i + 1}</td>
-                <td className="max-w-64 px-3 py-2">
+                <td className="px-2.5 py-2 text-right font-medium tabular-nums text-muted-foreground">{i + 1}</td>
+                <td className="max-w-64 px-2.5 py-2">
                   <StudentCell student={s} />
                 </td>
-                <td className="px-3 py-2">
+                <td className="px-2.5 py-2">
                   <RiskBadge risk={s.risk_flag} />
                 </td>
-                <td className="px-3 py-2 whitespace-nowrap">
+                <td className="px-2.5 py-2 whitespace-nowrap">
                   <LastContact date={s.last_contact_date} days={s.days_since_contact} />
                 </td>
-                <td className="px-3 py-2">
+                <td className="px-2.5 py-2">
                   <ScoreBar score={s.outreach_score} />
                 </td>
-                <td className="px-3 py-2">
-                  <ReasonChips reasons={s.outreach_reasons.map((r) => r.text)} />
+                <td className="px-2.5 py-2">
+                  {/* Capped so the chips wrap instead of pushing Log contact off the edge at laptop widths. */}
+                  <div className="max-w-56">
+                    <ReasonChips reasons={s.outreach_reasons.map((r) => r.text)} />
+                  </div>
                 </td>
-                <td className="px-3 py-2 text-right">
+                <td className="px-2.5 py-2 text-right whitespace-nowrap">
                   <Button
                     variant="outline"
                     size="sm"

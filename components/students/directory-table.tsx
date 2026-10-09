@@ -42,7 +42,7 @@ function SortHeader({
     <th
       scope="col"
       aria-sort={active ? (dir === "asc" ? "ascending" : "descending") : "none"}
-      className={cn("px-3 py-1.5 font-semibold", column.numeric && "text-right")}
+      className={cn("px-2.5 py-1.5 font-semibold whitespace-nowrap", column.numeric && "text-right")}
     >
       <button
         type="button"
@@ -123,7 +123,7 @@ export function DirectoryTable({
 
   return (
     <div className="overflow-x-auto">
-      <table className="w-full min-w-[1000px] border-collapse text-sm">
+      <table className="w-full min-w-[900px] border-collapse text-sm">
         <caption className="sr-only">
           Student directory. Use the arrow keys to move between rows and Enter to open a student.
         </caption>
@@ -149,7 +149,7 @@ export function DirectoryTable({
               }}
               className="cursor-pointer border-t border-border hover:bg-muted focus-visible:bg-cloud/60"
             >
-              <td className="px-3 py-2 font-mono text-[13px] tabular-nums whitespace-nowrap">
+              <td className="px-2.5 py-2 font-mono text-[13px] tabular-nums whitespace-nowrap">
                 <span className="inline-flex items-center gap-1.5">
                   {s.student_id}
                   {s.possible_duplicates.length > 0 && (
@@ -173,13 +173,17 @@ export function DirectoryTable({
                   )}
                 </span>
               </td>
-              <td className="px-3 py-2 font-medium whitespace-nowrap text-navy">
+              <td className="px-2.5 py-2 font-medium whitespace-nowrap text-navy">
                 {s.last_name}, {s.first_name}
               </td>
-              <td className="max-w-48 truncate px-3 py-2">{s.major}</td>
-              <td className="px-3 py-2">{s.class_year}</td>
-              <td className="px-3 py-2 text-right tabular-nums">{s.credits_earned}</td>
-              <td className="px-3 py-2 text-right tabular-nums">
+              <td className="px-2.5 py-2">
+                <span className="block max-w-40 truncate" title={s.major}>
+                  {s.major}
+                </span>
+              </td>
+              <td className="px-2.5 py-2">{s.class_year}</td>
+              <td className="px-2.5 py-2 text-right tabular-nums">{s.credits_earned}</td>
+              <td className="px-2.5 py-2 text-right tabular-nums">
                 {s.gpa === null ? (
                   <span className="text-muted-foreground" aria-label="GPA missing">
                     —
@@ -188,11 +192,11 @@ export function DirectoryTable({
                   s.gpa.toFixed(2)
                 )}
               </td>
-              <td className="px-3 py-2 whitespace-nowrap">{s.advisor}</td>
-              <td className="px-3 py-2 whitespace-nowrap">
+              <td className="px-2.5 py-2 whitespace-nowrap">{s.advisor}</td>
+              <td className="px-2.5 py-2 whitespace-nowrap">
                 <LastContact date={s.last_contact_date} days={s.days_since_contact} />
               </td>
-              <td className="px-3 py-2">
+              <td className="px-2.5 py-2">
                 <RiskBadge risk={s.risk_flag} />
               </td>
             </tr>

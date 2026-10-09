@@ -23,18 +23,21 @@ export function EmptyState({
   title,
   description,
   action,
+  titleAs: Title = "p",
 }: {
   icon: React.ComponentType<{ className?: string; "aria-hidden"?: boolean }>
   title: string
   description: string
   action?: React.ReactNode
+  /** Use "h1" when the empty state is the whole page (e.g. not found). */
+  titleAs?: "p" | "h1" | "h2"
 }) {
   return (
     <div className="flex flex-col items-center gap-2 px-6 py-14 text-center">
       <span className="flex size-10 items-center justify-center rounded-full bg-cloud text-azurite">
         <Icon className="size-5" aria-hidden={true} />
       </span>
-      <p className="font-semibold text-navy">{title}</p>
+      <Title className="font-semibold text-navy">{title}</Title>
       <p className="max-w-sm leading-relaxed text-muted-foreground">{description}</p>
       {action && <div className="pt-2">{action}</div>}
     </div>

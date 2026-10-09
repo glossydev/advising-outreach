@@ -49,7 +49,7 @@ export default async function DataQualityPage() {
         {report.imports.length === 0 ? (
           <p className="px-4 py-6 text-muted-foreground">
             No imports yet. The database is empty.{" "}
-            <Link href="/import" className="text-azurite underline-offset-2 hover:underline">
+            <Link href="/import" className="text-azurite underline underline-offset-2 hover:text-navy">
               Import data
             </Link>
           </p>

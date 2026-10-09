@@ -1,4 +1,4 @@
-import { NavLinks } from "./nav-links"
+import { HelpLink, NavLinks } from "./nav-links"
 
 export function AppTitle() {
   return (
@@ -18,9 +18,12 @@ export function Sidebar() {
       <nav aria-label="Primary" className="flex-1 py-3">
         <NavLinks />
       </nav>
-      <p className="border-t border-sidebar-border px-5 py-3 text-[12px] leading-relaxed text-white/75">
-        Scores are rule-based. Fictional student data, for demonstration only.
-      </p>
+      <div className="border-t border-sidebar-border pt-2">
+        <HelpLink />
+        <p className="px-5 pt-1 pb-3 text-[12px] leading-relaxed text-white/75">
+          Scores are rule-based. Fictional student data, for demonstration only.
+        </p>
+      </div>
     </aside>
   )
 }

@@ -39,7 +39,7 @@ export default async function OutreachQueuePage({ searchParams }: { searchParams
           subtext="Flagged high in the source data"
           tone={stats.high_risk > 0 ? "signal" : "default"}
         />
-        <StatTile label="Contacted this week" value={stats.contacted_this_week} subtext="Contact logged in the last 7 days" />
+        <StatTile label="Contacted this week" value={stats.contacted_this_week} subtext="Last contact in the past 7 days" />
       </StatTileGrid>
 
       <section aria-labelledby="queue-heading" className="rounded-lg border border-border bg-card">

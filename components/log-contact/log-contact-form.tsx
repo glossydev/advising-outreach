@@ -41,12 +41,15 @@ function FieldError({ id, message }: { id: string; message?: string }) {
 export function LogContactForm({
   student,
   advisor,
+  advisorIsAssigned = false,
   onDirtyChange,
   onCancel,
   onSaved,
 }: {
   student: LogContactStudent
   advisor: string
+  /** True when no advisor is chosen in the top bar, so the student's own advisor is used. */
+  advisorIsAssigned?: boolean
   onDirtyChange: (dirty: boolean) => void
   onCancel: () => void
   onSaved: () => void
@@ -228,7 +231,11 @@ export function LogContactForm({
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="advisor">Advisor</Label>
           <Input id="advisor" value={values.advisor} readOnly aria-readonly="true" className="bg-muted text-foreground" />
-          <p className="text-[13px] text-muted-foreground">Set from the Advisor selection in the top bar.</p>
+          <p className="text-[13px] text-muted-foreground">
+            {advisorIsAssigned
+              ? `${student.first_name}'s assigned advisor. Choose your name under Advisor in the top bar to log contacts as yourself.`
+              : "Set from the Advisor selection in the top bar."}
+          </p>
           <FieldError id="advisor-error" message={errors.advisor} />
         </div>
       </div>

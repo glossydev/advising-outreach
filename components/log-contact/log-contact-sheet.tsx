@@ -62,6 +62,7 @@ export function LogContactSheet({
                 key={student.student_id}
                 student={student}
                 advisor={selectedAdvisor ?? student.advisor}
+                advisorIsAssigned={!selectedAdvisor}
                 onDirtyChange={(dirty) => {
                   dirtyRef.current = dirty
                 }}

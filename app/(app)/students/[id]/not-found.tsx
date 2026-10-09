@@ -8,6 +8,7 @@ export default function StudentNotFound() {
     <div className="rounded-lg border border-border bg-card">
       <EmptyState
         icon={UserX}
+        titleAs="h1"
         title="Student not found"
         description="No student matches this ID. It may have been merged or removed in the latest import."
         action={

@@ -271,3 +271,35 @@ Adam asked the hiring team about the empty README.txt, and they sent the full fi
 - **One browser freeze** on the column step. Claude added a guard so a dropdown reporting its current value can't feed back into itself. Unconfirmed: later "stuck" dialogs turned out to be Chrome pausing animations in the background automation tab, which may also explain the freeze. Noted in CLAUDE.md so it isn't misdiagnosed again.
 
 **Waiting on Adam:** the official UA Block A file. UA's brand rules forbid altering the mark, so Claude didn't draw one; the dialog shows a neutral icon until the official file is in `public/brand/`.
+
+## 2026-10-08 — Phase 6: browser tests, accessibility checks and help pages
+
+**What Claude Code did**
+- **Playwright end-to-end specs, one per required capability:** list and search, filter, open a student, log a note and see it appear (with the score update), the outreach queue. Plus specs for the import (the sample files through the UI, and a messy file with renamed headers), the welcome dialog and the help pages. They run against a production build on a separate database (T10).
+- **axe accessibility checks** on every page and on each dialog and panel state: log contact with errors showing, Ctrl+K search, each import step, a sensitive note opened, the welcome dialog, and help search on desktop and phone. Anything worse than "minor" fails.
+- **Help pages** (P7, at Adam's request): `/help`, opened from the bottom of the sidebar, with a contents list, search and 44 screenshots. The screenshots come from a Playwright walk through every screen, which fails on any browser error.
+- Moved the pages into a route group so the help pages can sit outside the app shell (T9).
+
+**What the tests and the walk-through found**
+- **Ctrl+K crashed the page.** v0's search dialog was missing a wrapper component, so opening it threw an error and took down the page. This had been there since Phase 2. Manual testing missed it because everyone clicked the search box, which uses a different path. Found by the first e2e run. Fixed.
+- **axe found four real accessibility problems:**
+  1. Two links in running text told apart from the text only by color. They're now underlined.
+  2. The "student not found" page had no top-level heading.
+  3. The import drop zone was dimmed before a file type was chosen, which put its text below the contrast minimum.
+  4. A fifth report was the test's fault, not the app's: it measured a panel halfway through fading in. Checks now wait for animations to finish.
+- **Both main tables were clipped at a common laptop width (1280px).** The queue's "Log contact" column and the student list's "Risk" column ran off the right edge. Claude's first fix wasn't enough. Measuring the columns in the browser showed both tables 20–40px too wide, and the fix was tighter cell padding and reason chips that wrap.
+- **The log-contact form said the wrong thing.** With "All advisors" selected it claimed the advisor was "set from the Advisor selection in the top bar", but it was really the student's assigned advisor. The hint now says which.
+- **The "Contacted this week" tile was mislabeled.** It said "contact logged in the last 7 days" but counts students whose last contact, from a note *or* the spreadsheet, was in the past 7 days. Relabeled.
+- **On a phone, the top bar wraps to three rows** and was sticky, covering a sixth of the screen. It now scrolls away on small screens.
+
+**What Claude got wrong this phase**
+- **The first help draft didn't match the app in six places.** For example, it called a column-match label "Not found" (the app says "Not matched"), described a "bring it back" action without naming the real button, defined "Contacted this week" wrongly, and gave an incomplete list of date placeholders. All were caught by checking each statement against the code before publishing, and fixed.
+- **Test selectors:** three of the first four e2e failures were the tests' own fault: a heading matched as a substring, and a checkbox locator that matched two elements. Only the fourth, the Ctrl+K crash, was a real bug.
+- **ESLint's React hooks rule** flagged Playwright's fixture callback, which Playwright names `use`. Renamed it rather than switching the rule off.
+- **First screenshot run:** it failed on the deliberate 404 of the "student not found" page, and full-page captures cut the fixed sidebar off at the window height. The walk now allows that one 404 and grows the window instead of using full-page capture.
+- **Ordering trap:** Next's production server only serves public files that existed at build time, so screenshots made after a build can't be checked until the next build. Documented in CLAUDE.md (`docs:screenshots` before `test:e2e`).
+
+**Results**
+- `npm run test:e2e`: 44 passed (18 accessibility checks, 26 end-to-end).
+- `npm test`: 111 passed, including new checks that every screenshot and link in the help exists.
+- Typecheck and lint: clean.

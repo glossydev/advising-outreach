@@ -11,3 +11,4 @@ Approximate human time per session. AI wall-clock time is not counted.
 | 2026-10-08 | _(Adam to fill)_ | Created GDS deployment 23 + database. Access verified; switched to npm. Phase 3: database layer, 23 import rules, seed/reset, scoring, 96 tests (SQLite + Postgres). |
 | 2026-10-08 | _(Adam to fill)_ | Phase 4: API routes and service layer, pages on the real database, mock data removed, data decisions visible in the UI. |
 | 2026-10-08 | _(Adam to fill)_ | Real README received and applied. Phase 5: import page (column check, review and fix, prototype tools), welcome dialog, empty states; full UI import verified in Chrome. |
+| 2026-10-08 | _(Adam to fill)_ | Asked for help pages alongside Phase 6. Phase 6: Playwright e2e + axe checks (44 passing), Ctrl+K crash and four accessibility problems fixed, help pages with a generated screenshot walk, which found clipped tables, a misleading form hint and a mislabeled tile. |

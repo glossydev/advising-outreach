@@ -95,7 +95,6 @@ export function StartStep({
           className={cn(
             "flex flex-col items-center gap-3 rounded-lg border-2 border-dashed px-6 py-8 text-center",
             dragging ? "border-arroyo bg-rain/15" : "border-border bg-muted/40",
-            !kind && "opacity-60",
           )}
         >
           <FileSpreadsheet className="size-8 text-shade" aria-hidden="true" />

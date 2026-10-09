@@ -4,7 +4,7 @@ import { useState } from "react"
 import { Menu } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { NavLinks } from "./nav-links"
+import { HelpLink, NavLinks } from "./nav-links"
 
 export function MobileNav() {
   const [open, setOpen] = useState(false)
@@ -22,6 +22,9 @@ export function MobileNav() {
         <nav aria-label="Primary">
           <NavLinks onNavigate={() => setOpen(false)} />
         </nav>
+        <div className="mt-2 border-t border-sidebar-border pt-2">
+          <HelpLink onNavigate={() => setOpen(false)} />
+        </div>
       </SheetContent>
     </Sheet>
   )

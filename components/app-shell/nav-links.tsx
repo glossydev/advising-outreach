@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { FileUp, ListOrdered, ShieldCheck, Users } from "lucide-react"
+import { BookOpen, ExternalLink, FileUp, ListOrdered, ShieldCheck, Users } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const NAV_ITEMS = [
@@ -37,5 +37,22 @@ export function NavLinks({ onNavigate }: { onNavigate?: () => void }) {
         )
       })}
     </ul>
+  )
+}
+
+/** Opens the help pages in a new tab, so an import or a half-written note isn't lost. */
+export function HelpLink({ onNavigate }: { onNavigate?: () => void }) {
+  return (
+    <Link
+      href="/help"
+      target="_blank"
+      onClick={onNavigate}
+      className="flex items-center gap-2.5 py-2 pr-3 pl-5 text-sm text-white/85 transition-colors hover:bg-arroyo/40 hover:text-white"
+    >
+      <BookOpen className="size-4 shrink-0" aria-hidden="true" />
+      Help &amp; documentation
+      <ExternalLink className="size-3.5 shrink-0 text-white/60" aria-hidden="true" />
+      <span className="sr-only">(opens in a new tab)</span>
+    </Link>
   )
 }

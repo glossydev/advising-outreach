@@ -218,7 +218,7 @@ export function DuplicateBanner({ student }: { student: Student }) {
           {student.possible_duplicates.map((d, i) => (
             <span key={d.student_id}>
               {i > 0 && ", "}
-              <Link href={`/students/${d.student_id}`} className="text-azurite underline-offset-2 hover:underline">
+              <Link href={`/students/${d.student_id}`} className="text-azurite underline underline-offset-2 hover:text-navy">
                 {d.name} ({d.student_id})
               </Link>
             </span>

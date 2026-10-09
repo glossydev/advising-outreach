@@ -131,7 +131,12 @@ export function WelcomeDialog({ logoSrc }: { logoSrc: string | null }) {
           A prototype built for an interview exercise. All student data is fictional, and &ldquo;today&rdquo; is fixed at{" "}
           {formatDate(TODAY_ISO)}, as in the brief.
           {logoSrc && " The University of Arizona Block A is a trademark of the University of Arizona."} Reopen this any time from
-          the <CircleHelp className="inline size-3.5 align-[-2px]" aria-label="help" /> button at the top.
+          the <CircleHelp className="inline size-3.5 align-[-2px]" aria-label="help" /> button at the top. Step-by-step guides
+          for every screen are in{" "}
+          <a href="/help" target="_blank" className="text-azurite underline underline-offset-2 hover:text-navy">
+            Help &amp; documentation<span className="sr-only"> (opens in a new tab)</span>
+          </a>
+          .
         </p>
 
         <DialogFooter className="items-center sm:justify-between">
