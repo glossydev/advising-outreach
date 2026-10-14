@@ -388,4 +388,4 @@ Adam asked for a final bug check, performance numbers, a check that everything i
 
 **Performance numbers** are in [PERFORMANCE.md](PERFORMANCE.md). One honest gap: the script's largest-contentful-paint column came back empty, because the simple timing API doesn't expose it; it was dropped rather than guessed.
 
-**Left for Adam:** fill in the hours in TIME_LOG.md; the hosted copy has one extra note from his own testing (reload the sample data on the Import page to reset it); make the repository public at submission.
+**Left for Adam:** the hosted copy has one extra note from his own testing (reload the sample data on the Import page to reset it); make the repository public at submission.
