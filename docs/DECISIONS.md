@@ -146,7 +146,7 @@ Every factor adds a plain-language reason, and the reasons are shown to advisors
 
 ## Product decisions
 
-**P1: Imports add and update; they never delete.** Students already in the database are matched by `student_id`: changed fields are updated (and shown before commit), and new students are added. New notes are added, and notes already imported are skipped. The import page explains this before the user picks a file, and says how to start clean: the **Reset database** button in the prototype tools box (or `pnpm db:reset` locally). _(Adam, 2026-10-08.)_
+**P1: Imports add and update; they never delete.** Students already in the database are matched by `student_id`: changed fields are updated (and shown before commit), and new students are added. New notes are added, and notes already imported are skipped. The import page explains this before the user picks a file, and says how to start clean: the **Reset database** button in the prototype tools box (or `npm run db:reset` locally). _(Adam, 2026-10-08.)_
 
 **P2: Column matching is automatic, with a brief review.** Headers are matched by exact name, then by known alternatives, then by closest name. The review screen lists every match on one screen and highlights anything that isn't an exact header match, so problems stand out without reading every row. If everything matches exactly, it's a single "Continue". A required field with no match is shown in red and must be assigned. _(Adam, 2026-10-08.)_
 
@@ -228,7 +228,7 @@ Every factor adds a plain-language reason, and the reasons are shown to advisors
 - **Node:** 22.12 or newer (`engines`), required by `better-sqlite3` 13 and Vitest 5. Node 20 reached end of life in April 2026.
 
 **T2: Storage is a SQLite file by default, or Postgres when `DATABASE_URL` points to one; queries go through Kysely.** _(Revised 2026-10-08. The first version chose Postgres + Drizzle everywhere.)_
-- **Fresh clone:** needs no database server and no secrets. With `DATABASE_URL` unset, the app uses `data/app.db` (gitignored), created and filled by `pnpm seed`.
+- **Fresh clone:** needs no database server and no secrets. With `DATABASE_URL` unset, the app uses `data/app.db` (gitignored), created and filled on first start (or by `npm run seed`).
 - **On GDS:** `DATABASE_URL` is a `postgres://` address supplied by the environment, and the same code runs against Postgres. No connection details are ever committed.
 - **Why Kysely over Drizzle:** Kysely runs the same queries and migrations against both databases; Drizzle needs a separate schema per database.
 - **Portability rules:** only SQL both databases share. Dates and JSON are stored as text, true/false as 0/1, IDs as text.
@@ -249,7 +249,7 @@ Every factor adds a plain-language reason, and the reasons are shown to advisors
 
 **T4: Import rules are plain functions shared by browser and server.** The browser re-checks a row the moment it's edited, so highlighting updates instantly. The server re-runs the same functions on commit and refuses anything still blocking, so the browser never has the final say.
 
-**T5: The seed script is an import with every suggestion accepted.** `pnpm seed` sends the sample files through the same rules and records each fix as accepted by the seed script. A fresh clone, the hosted demo and the end-to-end tests all start from the same known state, produced by the same code a person would use.
+**T5: The seed script is an import with every suggestion accepted.** `npm run seed` (and the first start of an empty database) sends the sample files through the same rules and records each fix as accepted by the seed script. A fresh clone, the hosted demo and the end-to-end tests all start from the same known state, produced by the same code a person would use.
 
 **T9: The app's pages live in a route group, `app/(app)/`.** Its layout holds the shell (sidebar, top bar, welcome dialog). The help pages sit outside it with their own layout. URLs are unchanged: a route group only groups files.
 

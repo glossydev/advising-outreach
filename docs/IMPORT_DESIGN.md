@@ -19,7 +19,7 @@ So the import itself does the work, every time:
 
 ## The flow
 
-**Before step 1: how import treats existing data (P1).** The top of the import page says, in plain words: importing **adds new records and updates existing ones; it never deletes anything**. Students are matched by ID. Notes already imported are skipped. For a completely clean import, use **Reset database** in the prototype tools box first, or run `pnpm db:reset` locally.
+**Before step 1: how import treats existing data (P1).** The top of the import page says, in plain words: importing **adds new records and updates existing ones; it never deletes anything**. Students are matched by ID. Notes already imported are skipped. For a completely clean import, use **Reset database** in the prototype tools box first, or run `npm run db:reset` locally.
 
 **Step 1: What are you importing?** Students or Contact notes. Notes are checked against the students already in the database, so students come first. The notes option says so if none exist yet.
 
@@ -75,7 +75,7 @@ The panel is controlled by an environment variable (`ENABLE_PROTOTYPE_TOOLS`, on
 
 ## Seeding
 
-`pnpm seed` runs the same import on the sample files and accepts every suggested fix. Rows with a blocking issue and no suggestion are excluded and reported. Every fix is recorded as accepted by the seed script. This gives a fresh clone, the hosted demo and the end-to-end tests the same known starting point, using the same rules a person would use.
+`npm run seed` runs the same import on the sample files and accepts every suggested fix. Rows with a blocking issue and no suggestion are excluded and reported. Every fix is recorded as accepted by the seed script. This gives a fresh clone, the hosted demo and the end-to-end tests the same known starting point, using the same rules a person would use.
 
 ## How it fits together
 

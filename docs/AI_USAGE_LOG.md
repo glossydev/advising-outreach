@@ -304,9 +304,9 @@ Adam asked the hiring team about the empty README.txt, and they sent the full fi
 - `npm test`: 111 passed, including new checks that every screenshot and link in the help exists.
 - Typecheck and lint: clean.
 
-## 2026-10-08 — Phase 6 review: Adam's notes and a second AI's code review
+## 2026-10-08 — Phase 6 review: Adam's notes and a ChatGPT/Astra code review
 
-Adam reviewed Phase 6 with four notes, and passed on findings from another AI agent he'd asked to review the code for bugs and loose ends. Claude checked every claim against the code before changing anything.
+Adam reviewed Phase 6 with four notes, and passed on findings from a bug and vulnerability review he ran with ChatGPT (Astra). Claude checked every claim against the code before changing anything.
 
 **Adam's notes, and what was decided**
 1. **The contact preference was tangled up with the contact type.** Adam saw a phone-only preference nudging contacts to be recorded as phone calls.
@@ -371,3 +371,21 @@ Adam asked for a pass at "weird" viewport sizes on phones and tablets, verified 
 - `npm run test:responsive`: 24 passed (every page and dialog at all 15 widths).
 - `npm run test:e2e`: 82 passed, including the responsive checks at 320, 768 and 1024, and four phone-layout tests.
 - `npm test`: 128 passed. Typecheck and lint: clean.
+
+## 2026-10-14 — Phase 7: final checks and the submission README (Claude Fable 5.1)
+
+Adam asked for a final bug check, performance numbers, a check that everything in the brief is covered, and the missing README. This entry was written by a different model from the earlier phases (Fable 5.1, not Opus 5.5), as Adam's README credits say.
+
+**Spec check against the brief.** Every required item is present: list, search and filter students; open a student's detail; log a contact note; an API that serves the data and saves notes; one smart feature (the ranked queue); what was noticed in the data and decided (DATA_AUDIT, DECISIONS). The one missing deliverable was the one-page README, now written in Adam's voice from his notes on who did what.
+
+**Bug check, all clean:** typecheck, lint, 128 unit and integration tests on SQLite, 135 on Postgres in Docker, 82 browser and accessibility tests, the 24-screen × 15-width layout sweep. A **fresh `git clone`** into a temp folder, `npm ci` (35s), `npm run build` (17s) and a first start with no `.env` and no database file came up healthy with the sample data loaded, and every page returned 200. That is the path a grader takes, so it was worth testing as a whole rather than assuming the pieces add up.
+
+**Staging** was still on Phase 5 code. Claude triggered the staging build and verified the deployed copy: the new migration ran on Postgres, the preference saved in the old shape reads correctly in the new one, the help pages are served, and the queue carries ranks.
+
+**Housekeeping found by the check:** three docs still said `pnpm` from before the switch to npm; `.env.example` listed an `ANTHROPIC_API_KEY` for a summary feature that was cut and that no code reads; the local `.claude/` folder of command approvals is now gitignored before the repo goes public. The ChatGPT/Astra review in the Phase 6 entry was previously described only as "another AI agent"; Adam named it, and the entry now says so.
+
+**Secrets and PII scan of the tracked files:** no connection strings, keys or tokens. The only SSN-shaped numbers are in the hiring team's own CSV (kept byte-for-byte by rule) and in tests that prove the refusal works. `npm audit`: the same 9 "high" entries as T8, all one `braces` advisory in build-time tooling with no published fix.
+
+**Performance numbers** are in [PERFORMANCE.md](PERFORMANCE.md). One honest gap: the script's largest-contentful-paint column came back empty, because the simple timing API doesn't expose it; it was dropped rather than guessed.
+
+**Left for Adam:** fill in the hours in TIME_LOG.md; the hosted copy has one extra note from his own testing (reload the sample data on the Import page to reset it); make the repository public at submission.

@@ -28,6 +28,9 @@ playwright-report/
 # The hiring team's brief stays out of the (eventually public) repo
 instructions.txt
 
+# Local Claude Code permission settings
+.claude/
+
 # OS
 .DS_Store
 Thumbs.db
